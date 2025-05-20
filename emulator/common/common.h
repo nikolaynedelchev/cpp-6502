@@ -14,6 +14,14 @@ using Word = uint16_t;
 using SWord = int16_t;
 using Address = uint16_t;
 
+class IDevice
+{
+public:
+    virtual ~IDevice();
+
+    virtual void Clock() = 0;
+};
+
 struct Error : public std::exception
 {
     ~Error();

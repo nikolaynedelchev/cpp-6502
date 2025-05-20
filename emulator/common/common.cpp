@@ -3,6 +3,9 @@
 namespace cpp6502
 {
 
+
+IDevice::~IDevice() = default;
+
 Error::~Error()
 {
     if (thrown_)
