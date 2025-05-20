@@ -1,0 +1,5 @@
+add_subdirectory(common)
+add_subdirectory(membus)
+add_subdirectory(cpu6502)
+add_subdirectory(ram)
+add_subdirectory(rom)

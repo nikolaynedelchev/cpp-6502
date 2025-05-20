@@ -30,3 +30,15 @@
 *.exe
 *.out
 *.app
+
+# Cmake
+CMakeLists.txt.user
+
+# vcpkg
+/vcpkg/buildtrees/
+/vcpkg/packages/
+/vcpkg/downloads/
+/vcpkg_installed/
+/vcpkg/.vs/
+/vcpkg/.vscode/
+/vcpkg/out/
