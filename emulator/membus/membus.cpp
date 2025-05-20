@@ -14,7 +14,8 @@ Byte Membus::Read(Address address)
 {
     if (!isReady_)
     {
-        Error("Memory not ready for read")
+        Error("Membus")
+            .Msg("Memory not ready for read")
             .Msg("Address: {}", address)
             .Throw();
     }
@@ -37,7 +38,8 @@ void Membus::Write(Address address, Byte data)
 {
     if (!isReady_)
     {
-        Error("Memory not ready for write")
+        Error("Membus")
+            .Msg("Memory not ready for write")
             .Msg("Address: {}", address)
             .Throw();
     }
@@ -82,7 +84,8 @@ void Membus::Connect(IMemory *mem, Address startAddress, Address endAddress)
 
         if (isInvalid || isOverlap)
         {
-            Error("Slot Error")
+            Error("Membus")
+                .Msg("Slot Error")
                 .Msg("Index: {}", i)
                 .Msg("Start: {}", slots_[i].start)
                 .Msg("End: {}", slots_[i].end)
