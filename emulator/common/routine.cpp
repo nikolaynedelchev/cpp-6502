@@ -56,6 +56,8 @@ void Routine::promise_type::operator delete(void *ptr, size_t size) noexcept
     }
 }
 
+Routine::Routine() = default;
+
 Routine::Routine(std::coroutine_handle<promise_type> h) : handle_(h)
 {
 
@@ -80,6 +82,15 @@ Routine &Routine::operator=(Routine &&other) noexcept
 Routine::~Routine()
 {
     Destroy();
+}
+
+bool Routine::Done() const
+{
+    if (handle_ == nullptr)
+    {
+        return true;
+    }
+    return handle_.done();
 }
 
 bool Routine::Resume()

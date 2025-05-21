@@ -28,7 +28,9 @@ struct Routine
         static void operator delete(void* ptr, size_t size) noexcept;
     };
 
+    ///////////////////
 
+    Routine();
     explicit Routine(std::coroutine_handle<promise_type> h);
     Routine(const Routine&) = delete;
     Routine& operator=(const Routine&) = delete;
@@ -38,6 +40,7 @@ struct Routine
 
     ~Routine();
 
+    bool Done() const;
     bool Resume();
     void Destroy();
 
