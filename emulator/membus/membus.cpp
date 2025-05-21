@@ -43,13 +43,16 @@ void Membus::Write(Address address, Byte data)
             .Msg("Address: {}", address)
             .Throw();
     }
+
     isReady_ = false;
+    lastValildData_ = data;
 
     for(auto& slot : slots_)
     {
         if (slot.start <= address && slot.end >= address)
         {
-            return slot.memory->Write(address, data);
+            slot.memory->Write(address, data);
+            return;
         }
     }
 
