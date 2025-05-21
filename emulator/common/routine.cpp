@@ -1,4 +1,5 @@
 #include "routine.h"
+#include "mempool.h"
 
 namespace cpp6502
 {
@@ -30,6 +31,29 @@ void Routine::promise_type::return_void() noexcept
 void Routine::promise_type::unhandled_exception() noexcept
 {
     std::terminate();
+}
+
+void *Routine::promise_type::operator new(size_t size)
+{
+    return MemPool::Malloc(size);
+}
+
+void Routine::promise_type::operator delete(void *ptr, size_t size) noexcept
+{
+    try
+    {
+        MemPool::Free(ptr, size);
+    }
+    catch (const std::exception& e)
+    {
+        fmt::println("[Routine] Exception in delete operator:\n{}", e.what());
+        abort();
+    }
+    catch (...)
+    {
+        fmt::println("[Routine] Unknown Exception in delete operator");
+        abort();
+    }
 }
 
 Routine::Routine(std::coroutine_handle<promise_type> h) : handle_(h)

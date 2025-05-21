@@ -22,6 +22,10 @@ struct Routine
         std::suspend_always final_suspend() noexcept;
         void return_void() noexcept;
         void unhandled_exception() noexcept;
+
+        // use custom memory allocation
+        static void* operator new(size_t size);
+        static void operator delete(void* ptr, size_t size) noexcept;
     };
 
 
