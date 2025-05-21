@@ -61,9 +61,25 @@ Routine::Routine(std::coroutine_handle<promise_type> h) : handle_(h)
 
 }
 
+Routine::Routine(Routine &&other) noexcept : handle_(std::move(other.handle_))
+{
+    other.handle_ = {};
+}
+
+Routine &Routine::operator=(Routine &&other) noexcept
+{
+    if (this != &other)
+    {
+        Destroy();
+        handle_ = std::move(other.handle_);
+        other.handle_ = {};
+    }
+    return *this;
+}
+
 Routine::~Routine()
 {
-    if (handle_) handle_.destroy();
+    Destroy();
 }
 
 bool Routine::Resume()
@@ -73,6 +89,15 @@ bool Routine::Resume()
         handle_.resume();
     }
     return !handle_.done();
+}
+
+void Routine::Destroy()
+{
+    if (handle_)
+    {
+        handle_.destroy();
+    }
+    handle_ = {};
 }
 
 

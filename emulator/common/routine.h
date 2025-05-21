@@ -30,9 +30,16 @@ struct Routine
 
 
     explicit Routine(std::coroutine_handle<promise_type> h);
+    Routine(const Routine&) = delete;
+    Routine& operator=(const Routine&) = delete;
+
+    Routine(Routine&& other) noexcept;
+    Routine& operator=(Routine&& other) noexcept;
+
     ~Routine();
 
     bool Resume();
+    void Destroy();
 
     std::coroutine_handle<promise_type> handle_;
 };
