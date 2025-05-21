@@ -17,8 +17,8 @@ public:
     // IDevice interface
     void Clock() final;
 
-private:
     class Impl;
+private:
     std::shared_ptr<Impl> impl_;
 };
 
