@@ -5,6 +5,8 @@
 namespace cpp6502
 {
 
+IMemory::~IMemory() = default;
+
 void Membus::Clock()
 {
     isReady_ = true;

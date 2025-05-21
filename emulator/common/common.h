@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <fmt/format.h>
 #include "source_location.h"
+#include "spinlock.h"
+#include "stopwatch.h"
 
 namespace cpp6502
 {
