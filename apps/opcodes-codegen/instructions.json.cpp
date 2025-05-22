@@ -12,69 +12,69 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "2",
           "description" : "Add with Carry",
           "name" : "ADC",
-          "opcode" : "$69",
-          "mode" : "Immediate"
+          "opcode" : "0x69",
+          "mode" : "MemAcc_Immediate"
        },
        {
-          "opcode" : "$65",
+          "opcode" : "0x65",
           "name" : "ADC",
           "bytes" : "2",
           "description" : "Add with Carry",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
           "description" : "Add with Carry",
           "bytes" : "2",
-          "opcode" : "$75",
+          "opcode" : "0x75",
           "name" : "ADC",
-          "mode" : "ZeroPage,X"
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
           "name" : "ADC",
-          "opcode" : "$6D",
+          "opcode" : "0x6D",
           "bytes" : "3",
           "description" : "Add with Carry",
-          "mode" : "Absolute"
+          "mode" : "MemAcc_Absolute"
        },
        {
-          "mode" : "Absolute,X",
+          "mode" : "MemAcc_Absolute_X",
           "name" : "ADC",
-          "opcode" : "$7D",
+          "opcode" : "0x7D",
           "bytes" : "3",
           "description" : "Add with Carry"
        },
        {
-          "mode" : "Absolute,Y",
+          "mode" : "MemAcc_Absolute_Y",
           "name" : "ADC",
-          "opcode" : "$79",
+          "opcode" : "0x79",
           "description" : "Add with Carry",
           "bytes" : "3"
        },
        {
-          "mode" : "Indirect,X",
+          "mode" : "MemAcc_Indexed_X",
           "description" : "Add with Carry",
           "bytes" : "2",
-          "opcode" : "$61",
+          "opcode" : "0x61",
           "name" : "ADC"
        },
        {
-          "mode" : "Indirect,Y",
+          "mode" : "MemAcc_Indexed_Y",
           "bytes" : "2",
           "description" : "Add with Carry",
           "name" : "ADC",
-          "opcode" : "$71"
+          "opcode" : "0x71"
        },
        {
           "bytes" : "2",
           "description" : "Logical AND",
           "name" : "AND",
-          "opcode" : "$29",
-          "mode" : "Immediate"
+          "opcode" : "0x29",
+          "mode" : "MemAcc_Immediate"
        },
        {
-          "mode" : "ZeroPage",
+          "mode" : "MemAcc_ZeroPage",
           "name" : "AND",
-          "opcode" : "$25",
+          "opcode" : "0x25",
           "bytes" : "2",
           "description" : "Logical AND"
        },
@@ -82,12 +82,12 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "2",
           "description" : "Logical AND",
           "name" : "AND",
-          "opcode" : "$35",
-          "mode" : "ZeroPage,X"
+          "opcode" : "0x35",
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
-          "mode" : "Absolute",
-          "opcode" : "$2D",
+          "mode" : "MemAcc_Absolute",
+          "opcode" : "0x2D",
           "name" : "AND",
           "description" : "Logical AND",
           "bytes" : "3"
@@ -96,145 +96,145 @@ const std::string& GetOpcodesJsonString()
           "description" : "Logical AND",
           "bytes" : "3",
           "name" : "AND",
-          "opcode" : "$3D",
-          "mode" : "Absolute,X"
+          "opcode" : "0x3D",
+          "mode" : "MemAcc_Absolute_X"
        },
        {
-          "mode" : "Absolute,Y",
+          "mode" : "MemAcc_Absolute_Y",
           "bytes" : "3",
           "description" : "Logical AND",
-          "opcode" : "$39",
+          "opcode" : "0x39",
           "name" : "AND"
        },
        {
           "description" : "Logical AND",
           "bytes" : "2",
-          "opcode" : "$21",
+          "opcode" : "0x21",
           "name" : "AND",
-          "mode" : "Indirect,X"
+          "mode" : "MemAcc_Indexed_X"
        },
        {
           "name" : "AND",
-          "opcode" : "$31",
+          "opcode" : "0x31",
           "description" : "Logical AND",
           "bytes" : "2",
-          "mode" : "Indirect,Y"
+          "mode" : "MemAcc_Indexed_Y"
        },
        {
           "description" : "Arithmetic Shift Left",
           "bytes" : "1",
-          "opcode" : "$0A",
+          "opcode" : "0x0A",
           "name" : "ASL",
-          "mode" : "Accumulator"
+          "mode" : "MemAcc_Accumulator"
        },
        {
-          "opcode" : "$06",
+          "opcode" : "0x06",
           "name" : "ASL",
           "bytes" : "2",
           "description" : "Arithmetic Shift Left",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
           "description" : "Arithmetic Shift Left",
           "bytes" : "2",
           "name" : "ASL",
-          "opcode" : "$16",
-          "mode" : "ZeroPage,X"
+          "opcode" : "0x16",
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "description" : "Arithmetic Shift Left",
           "bytes" : "3",
           "name" : "ASL",
-          "opcode" : "$0E"
+          "opcode" : "0x0E"
        },
        {
-          "mode" : "Absolute,X",
+          "mode" : "MemAcc_Absolute_X",
           "description" : "Arithmetic Shift Left",
           "bytes" : "3",
           "name" : "ASL",
-          "opcode" : "$1E"
+          "opcode" : "0x1E"
        },
        {
-          "mode" : "Relative",
+          "mode" : "MemAcc_Relative",
           "bytes" : "2",
           "description" : "Branch if Carry Clear",
-          "opcode" : "$90",
+          "opcode" : "0x90",
           "name" : "BCC"
        },
        {
-          "mode" : "Relative",
+          "mode" : "MemAcc_Relative",
           "bytes" : "2",
           "description" : "Branch if Carry Set",
           "name" : "BCS",
-          "opcode" : "$B0"
+          "opcode" : "0xB0"
        },
        {
           "bytes" : "2",
           "description" : "Branch if Equal",
           "name" : "BEQ",
-          "opcode" : "$F0",
-          "mode" : "Relative"
+          "opcode" : "0xF0",
+          "mode" : "MemAcc_Relative"
        },
        {
-          "opcode" : "$24",
+          "opcode" : "0x24",
           "name" : "BIT",
           "bytes" : "2",
           "description" : "Bit Test",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "description" : "Bit Test",
           "bytes" : "3",
           "name" : "BIT",
-          "opcode" : "$2C"
+          "opcode" : "0x2C"
        },
        {
-          "mode" : "Relative",
+          "mode" : "MemAcc_Relative",
           "description" : "Branch if Minus",
           "bytes" : "2",
           "name" : "BMI",
-          "opcode" : "$30"
+          "opcode" : "0x30"
        },
        {
-          "opcode" : "$D0",
+          "opcode" : "0xD0",
           "name" : "BNE",
           "description" : "Branch if Not Equal",
           "bytes" : "2",
-          "mode" : "Relative"
+          "mode" : "MemAcc_Relative"
        },
        {
-          "mode" : "Relative",
-          "opcode" : "$10",
+          "mode" : "MemAcc_Relative",
+          "opcode" : "0x10",
           "name" : "BPL",
           "description" : "Branch if Positive",
           "bytes" : "2"
        },
        {
           "name" : "BRK",
-          "opcode" : "$00",
+          "opcode" : "0x00",
           "description" : "Force Interrupt",
           "bytes" : "1",
           "mode" : "Implied"
        },
        {
-          "mode" : "Relative",
+          "mode" : "MemAcc_Relative",
           "description" : "Branch if Overflow Clear",
           "bytes" : "2",
-          "opcode" : "$50",
+          "opcode" : "0x50",
           "name" : "BVC"
        },
        {
-          "mode" : "Relative",
+          "mode" : "MemAcc_Relative",
           "description" : "Branch if Overflow Set",
           "bytes" : "2",
           "name" : "BVS",
-          "opcode" : "$70"
+          "opcode" : "0x70"
        },
        {
           "mode" : "Implied",
-          "opcode" : "$18",
+          "opcode" : "0x18",
           "name" : "CLC",
           "bytes" : "1",
           "description" : "Clear Carry Flag"
@@ -243,188 +243,188 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "1",
           "description" : "Clear Decimal Mode",
           "name" : "CLD",
-          "opcode" : "$D8",
+          "opcode" : "0xD8",
           "mode" : "Implied"
        },
        {
           "mode" : "Implied",
           "bytes" : "1",
           "description" : "Clear Interrupt Disable",
-          "opcode" : "$58",
+          "opcode" : "0x58",
           "name" : "CLI"
        },
        {
           "mode" : "Implied",
           "description" : "Clear Overflow Flag",
           "bytes" : "1",
-          "opcode" : "$B8",
+          "opcode" : "0xB8",
           "name" : "CLV"
        },
        {
-          "opcode" : "$C9",
+          "opcode" : "0xC9",
           "name" : "CMP",
           "bytes" : "2",
           "description" : "Compare",
-          "mode" : "Immediate"
+          "mode" : "MemAcc_Immediate"
        },
        {
-          "mode" : "ZeroPage",
+          "mode" : "MemAcc_ZeroPage",
           "bytes" : "2",
           "description" : "Compare",
-          "opcode" : "$C5",
+          "opcode" : "0xC5",
           "name" : "CMP"
        },
        {
-          "opcode" : "$D5",
+          "opcode" : "0xD5",
           "name" : "CMP",
           "bytes" : "2",
           "description" : "Compare",
-          "mode" : "ZeroPage,X"
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
-          "mode" : "Absolute",
-          "opcode" : "$CD",
+          "mode" : "MemAcc_Absolute",
+          "opcode" : "0xCD",
           "name" : "CMP",
           "bytes" : "3",
           "description" : "Compare"
        },
        {
           "name" : "CMP",
-          "opcode" : "$DD",
+          "opcode" : "0xDD",
           "bytes" : "3",
           "description" : "Compare",
-          "mode" : "Absolute,X"
+          "mode" : "MemAcc_Absolute_X"
        },
        {
-          "opcode" : "$D9",
+          "opcode" : "0xD9",
           "name" : "CMP",
           "bytes" : "3",
           "description" : "Compare",
-          "mode" : "Absolute,Y"
+          "mode" : "MemAcc_Absolute_Y"
        },
        {
           "name" : "CMP",
-          "opcode" : "$C1",
+          "opcode" : "0xC1",
           "bytes" : "2",
           "description" : "Compare",
-          "mode" : "Indirect,X"
+          "mode" : "MemAcc_Indexed_X"
        },
        {
           "name" : "CMP",
-          "opcode" : "$D1",
+          "opcode" : "0xD1",
           "bytes" : "2",
           "description" : "Compare",
-          "mode" : "Indirect,Y"
+          "mode" : "MemAcc_Indexed_Y"
        },
        {
-          "mode" : "Immediate",
+          "mode" : "MemAcc_Immediate",
           "name" : "CPX",
-          "opcode" : "$E0",
+          "opcode" : "0xE0",
           "description" : "Compare X Register",
           "bytes" : "2"
        },
        {
-          "mode" : "ZeroPage",
+          "mode" : "MemAcc_ZeroPage",
           "bytes" : "2",
           "description" : "Compare X Register",
-          "opcode" : "$E4",
+          "opcode" : "0xE4",
           "name" : "CPX"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "description" : "Compare X Register",
           "bytes" : "3",
           "name" : "CPX",
-          "opcode" : "$EC"
+          "opcode" : "0xEC"
        },
        {
-          "mode" : "Immediate",
+          "mode" : "MemAcc_Immediate",
           "name" : "CPY",
-          "opcode" : "$C0",
+          "opcode" : "0xC0",
           "bytes" : "2",
           "description" : "Compare Y Register"
        },
        {
-          "opcode" : "$C4",
+          "opcode" : "0xC4",
           "name" : "CPY",
           "bytes" : "2",
           "description" : "Compare Y Register",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
           "bytes" : "3",
           "description" : "Compare Y Register",
           "name" : "CPY",
-          "opcode" : "$CC",
-          "mode" : "Absolute"
+          "opcode" : "0xCC",
+          "mode" : "MemAcc_Absolute"
        },
        {
           "bytes" : "2",
           "description" : "Decrement Memory",
           "name" : "DEC",
-          "opcode" : "$C6",
-          "mode" : "ZeroPage"
+          "opcode" : "0xC6",
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "opcode" : "$D6",
+          "opcode" : "0xD6",
           "name" : "DEC",
           "description" : "Decrement Memory",
           "bytes" : "2",
-          "mode" : "ZeroPage,X"
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
           "bytes" : "3",
           "description" : "Decrement Memory",
           "name" : "DEC",
-          "opcode" : "$CE",
-          "mode" : "Absolute"
+          "opcode" : "0xCE",
+          "mode" : "MemAcc_Absolute"
        },
        {
           "name" : "DEC",
-          "opcode" : "$DE",
+          "opcode" : "0xDE",
           "description" : "Decrement Memory",
           "bytes" : "3",
-          "mode" : "Absolute,X"
+          "mode" : "MemAcc_Absolute_X"
        },
        {
           "description" : "Decrement X Register",
           "bytes" : "1",
           "name" : "DEX",
-          "opcode" : "$CA",
+          "opcode" : "0xCA",
           "mode" : "Implied"
        },
        {
           "mode" : "Implied",
           "bytes" : "1",
           "description" : "Decrement Y Register",
-          "opcode" : "$88",
+          "opcode" : "0x88",
           "name" : "DEY"
        },
        {
-          "opcode" : "$49",
+          "opcode" : "0x49",
           "name" : "EOR",
           "description" : "Exclusive OR",
           "bytes" : "2",
-          "mode" : "Immediate"
+          "mode" : "MemAcc_Immediate"
        },
        {
-          "opcode" : "$45",
+          "opcode" : "0x45",
           "name" : "EOR",
           "bytes" : "2",
           "description" : "Exclusive OR",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "mode" : "ZeroPage,X",
+          "mode" : "MemAcc_ZeroPage_X",
           "bytes" : "2",
           "description" : "Exclusive OR",
           "name" : "EOR",
-          "opcode" : "$55"
+          "opcode" : "0x55"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "name" : "EOR",
-          "opcode" : "$4D",
+          "opcode" : "0x4D",
           "bytes" : "3",
           "description" : "Exclusive OR"
        },
@@ -432,61 +432,61 @@ const std::string& GetOpcodesJsonString()
           "description" : "Exclusive OR",
           "bytes" : "3",
           "name" : "EOR",
-          "opcode" : "$5D",
-          "mode" : "Absolute,X"
+          "opcode" : "0x5D",
+          "mode" : "MemAcc_Absolute_X"
        },
        {
-          "mode" : "Absolute,Y",
+          "mode" : "MemAcc_Absolute_Y",
           "name" : "EOR",
-          "opcode" : "$59",
+          "opcode" : "0x59",
           "description" : "Exclusive OR",
           "bytes" : "3"
        },
        {
-          "mode" : "Indirect,X",
+          "mode" : "MemAcc_Indexed_X",
           "description" : "Exclusive OR",
           "bytes" : "2",
           "name" : "EOR",
-          "opcode" : "$41"
+          "opcode" : "0x41"
        },
        {
-          "mode" : "Indirect,Y",
+          "mode" : "MemAcc_Indexed_Y",
           "bytes" : "2",
           "description" : "Exclusive OR",
-          "opcode" : "$51",
+          "opcode" : "0x51",
           "name" : "EOR"
        },
        {
           "bytes" : "2",
           "description" : "Increment Memory",
           "name" : "INC",
-          "opcode" : "$E6",
-          "mode" : "ZeroPage"
+          "opcode" : "0xE6",
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "opcode" : "$F6",
+          "opcode" : "0xF6",
           "name" : "INC",
           "description" : "Increment Memory",
           "bytes" : "2",
-          "mode" : "ZeroPage,X"
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "bytes" : "3",
           "description" : "Increment Memory",
-          "opcode" : "$EE",
+          "opcode" : "0xEE",
           "name" : "INC"
        },
        {
-          "opcode" : "$FE",
+          "opcode" : "0xFE",
           "name" : "INC",
           "bytes" : "3",
           "description" : "Increment Memory",
-          "mode" : "Absolute,X"
+          "mode" : "MemAcc_Absolute_X"
        },
        {
           "mode" : "Implied",
-          "opcode" : "$E8",
+          "opcode" : "0xE8",
           "name" : "INX",
           "description" : "Increment X Register",
           "bytes" : "1"
@@ -495,27 +495,27 @@ const std::string& GetOpcodesJsonString()
           "description" : "Increment Y Register",
           "bytes" : "1",
           "name" : "INY",
-          "opcode" : "$C8",
+          "opcode" : "0xC8",
           "mode" : "Implied"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "description" : "Jump",
           "bytes" : "3",
           "name" : "JMP",
-          "opcode" : "$4C"
+          "opcode" : "0x4C"
        },
        {
-          "mode" : "Indirect ",
-          "opcode" : "$6C",
+          "mode" : "MemAcc_Indirect",
+          "opcode" : "0x6C",
           "name" : "JMP",
           "description" : "Jump",
           "bytes" : "3"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "name" : "JSR",
-          "opcode" : "$20",
+          "opcode" : "0x20",
           "description" : "Jump to Subroutine",
           "bytes" : "3"
        },
@@ -523,55 +523,55 @@ const std::string& GetOpcodesJsonString()
           "description" : "Load Accumulator",
           "bytes" : "2",
           "name" : "LDA",
-          "opcode" : "$A9",
-          "mode" : "Immediate"
+          "opcode" : "0xA9",
+          "mode" : "MemAcc_Immediate"
        },
        {
-          "mode" : "ZeroPage",
+          "mode" : "MemAcc_ZeroPage",
           "name" : "LDA",
-          "opcode" : "$A5",
+          "opcode" : "0xA5",
           "bytes" : "2",
           "description" : "Load Accumulator"
        },
        {
-          "opcode" : "$B5",
+          "opcode" : "0xB5",
           "name" : "LDA",
           "description" : "Load Accumulator",
           "bytes" : "2",
-          "mode" : "ZeroPage,X"
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
           "name" : "LDA",
-          "opcode" : "$AD",
+          "opcode" : "0xAD",
           "bytes" : "3",
           "description" : "Load Accumulator",
-          "mode" : "Absolute"
+          "mode" : "MemAcc_Absolute"
        },
        {
-          "mode" : "Absolute,X",
+          "mode" : "MemAcc_Absolute_X",
           "bytes" : "3",
           "description" : "Load Accumulator",
-          "opcode" : "$BD",
+          "opcode" : "0xBD",
           "name" : "LDA"
        },
        {
-          "mode" : "Absolute,Y",
+          "mode" : "MemAcc_Absolute_Y",
           "name" : "LDA",
-          "opcode" : "$B9",
+          "opcode" : "0xB9",
           "bytes" : "3",
           "description" : "Load Accumulator"
        },
        {
-          "opcode" : "$A1",
+          "opcode" : "0xA1",
           "name" : "LDA",
           "description" : "Load Accumulator",
           "bytes" : "2",
-          "mode" : "Indirect,X"
+          "mode" : "MemAcc_Indexed_X"
        },
        {
-          "mode" : "Indirect,Y",
+          "mode" : "MemAcc_Indexed_Y",
           "name" : "LDA",
-          "opcode" : "$B1",
+          "opcode" : "0xB1",
           "description" : "Load Accumulator",
           "bytes" : "2"
        },
@@ -579,26 +579,26 @@ const std::string& GetOpcodesJsonString()
           "description" : "Load X Register",
           "bytes" : "2",
           "name" : "LDX",
-          "opcode" : "$A2",
-          "mode" : "Immediate"
+          "opcode" : "0xA2",
+          "mode" : "MemAcc_Immediate"
        },
        {
           "description" : "Load X Register",
           "bytes" : "2",
           "name" : "LDX",
-          "opcode" : "$A6",
-          "mode" : "ZeroPage"
+          "opcode" : "0xA6",
+          "mode" : "MemAcc_ZeroPage"
        },
        {
           "description" : "Load X Register",
           "bytes" : "2",
           "name" : "LDX",
-          "opcode" : "$B6",
-          "mode" : "ZeroPage,Y"
+          "opcode" : "0xB6",
+          "mode" : "MemAcc_ZeroPage_Y"
        },
        {
-          "mode" : "Absolute",
-          "opcode" : "$AE",
+          "mode" : "MemAcc_Absolute",
+          "opcode" : "0xAE",
           "name" : "LDX",
           "bytes" : "3",
           "description" : "Load X Register"
@@ -607,76 +607,76 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "3",
           "description" : "Load X Register",
           "name" : "LDX",
-          "opcode" : "$BE",
-          "mode" : "Absolute,Y"
+          "opcode" : "0xBE",
+          "mode" : "MemAcc_Absolute_Y"
        },
        {
-          "mode" : "Immediate",
-          "opcode" : "$A0",
+          "mode" : "MemAcc_Immediate",
+          "opcode" : "0xA0",
           "name" : "LDY",
           "description" : "Load Y Register",
           "bytes" : "2"
        },
        {
           "name" : "LDY",
-          "opcode" : "$A4",
+          "opcode" : "0xA4",
           "bytes" : "2",
           "description" : "Load Y Register",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
           "description" : "Load Y Register",
           "bytes" : "2",
           "name" : "LDY",
-          "opcode" : "$B4",
-          "mode" : "ZeroPage,X"
+          "opcode" : "0xB4",
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
           "name" : "LDY",
-          "opcode" : "$AC",
+          "opcode" : "0xAC",
           "description" : "Load Y Register",
           "bytes" : "3",
-          "mode" : "Absolute"
+          "mode" : "MemAcc_Absolute"
        },
        {
           "bytes" : "3",
           "description" : "Load Y Register",
           "name" : "LDY",
-          "opcode" : "$BC",
-          "mode" : "Absolute,X"
+          "opcode" : "0xBC",
+          "mode" : "MemAcc_Absolute_X"
        },
        {
-          "mode" : "Accumulator",
+          "mode" : "MemAcc_Accumulator",
           "description" : "Logical Shift Right",
           "bytes" : "1",
-          "opcode" : "$4A",
+          "opcode" : "0x4A",
           "name" : "LSR"
        },
        {
-          "mode" : "ZeroPage",
+          "mode" : "MemAcc_ZeroPage",
           "name" : "LSR",
-          "opcode" : "$46",
+          "opcode" : "0x46",
           "description" : "Logical Shift Right",
           "bytes" : "2"
        },
        {
-          "mode" : "ZeroPage,X",
+          "mode" : "MemAcc_ZeroPage_X",
           "description" : "Logical Shift Right",
           "bytes" : "2",
           "name" : "LSR",
-          "opcode" : "$56"
+          "opcode" : "0x56"
        },
        {
-          "mode" : "Absolute",
-          "opcode" : "$4E",
+          "mode" : "MemAcc_Absolute",
+          "opcode" : "0x4E",
           "name" : "LSR",
           "description" : "Logical Shift Right",
           "bytes" : "3"
        },
        {
-          "mode" : "Absolute,X",
+          "mode" : "MemAcc_Absolute_X",
           "name" : "LSR",
-          "opcode" : "$5E",
+          "opcode" : "0x5E",
           "description" : "Logical Shift Right",
           "bytes" : "3"
        },
@@ -684,67 +684,67 @@ const std::string& GetOpcodesJsonString()
           "mode" : "Implied",
           "description" : "No Operation",
           "bytes" : "1",
-          "opcode" : "$EA",
+          "opcode" : "0xEA",
           "name" : "NOP"
        },
        {
           "name" : "ORA",
-          "opcode" : "$09",
+          "opcode" : "0x09",
           "bytes" : "2",
           "description" : "Logical Inclusive OR",
-          "mode" : "Immediate"
+          "mode" : "MemAcc_Immediate"
        },
        {
-          "opcode" : "$05",
+          "opcode" : "0x05",
           "name" : "ORA",
           "description" : "Logical Inclusive OR",
           "bytes" : "2",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "mode" : "ZeroPage,X",
-          "opcode" : "$15",
+          "mode" : "MemAcc_ZeroPage_X",
+          "opcode" : "0x15",
           "name" : "ORA",
           "description" : "Logical Inclusive OR",
           "bytes" : "2"
        },
        {
-          "opcode" : "$0D",
+          "opcode" : "0x0D",
           "name" : "ORA",
           "bytes" : "3",
           "description" : "Logical Inclusive OR",
-          "mode" : "Absolute"
+          "mode" : "MemAcc_Absolute"
        },
        {
-          "mode" : "Absolute,X",
+          "mode" : "MemAcc_Absolute_X",
           "description" : "Logical Inclusive OR",
           "bytes" : "3",
           "name" : "ORA",
-          "opcode" : "$1D"
+          "opcode" : "0x1D"
        },
        {
-          "mode" : "Absolute,Y",
+          "mode" : "MemAcc_Absolute_Y",
           "description" : "Logical Inclusive OR",
           "bytes" : "3",
           "name" : "ORA",
-          "opcode" : "$19"
+          "opcode" : "0x19"
        },
        {
-          "mode" : "Indirect,X",
+          "mode" : "MemAcc_Indexed_X",
           "bytes" : "2",
           "description" : "Logical Inclusive OR",
           "name" : "ORA",
-          "opcode" : "$01"
+          "opcode" : "0x01"
        },
        {
-          "mode" : "Indirect,Y",
+          "mode" : "MemAcc_Indexed_Y",
           "description" : "Logical Inclusive OR",
           "bytes" : "2",
-          "opcode" : "$11",
+          "opcode" : "0x11",
           "name" : "ORA"
        },
        {
-          "opcode" : "$48",
+          "opcode" : "0x48",
           "name" : "PHA",
           "bytes" : "1",
           "description" : "Push Accumulator",
@@ -752,7 +752,7 @@ const std::string& GetOpcodesJsonString()
        },
        {
           "mode" : "Implied",
-          "opcode" : "$08",
+          "opcode" : "0x08",
           "name" : "PHP",
           "description" : "Push Processor Status",
           "bytes" : "1"
@@ -762,144 +762,144 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "1",
           "description" : "Pull Accumulator",
           "name" : "PLA",
-          "opcode" : "$68"
+          "opcode" : "0x68"
        },
        {
           "description" : "Pull Processor Status",
           "bytes" : "1",
-          "opcode" : "$28",
+          "opcode" : "0x28",
           "name" : "PLP",
           "mode" : "Implied"
        },
        {
-          "mode" : "Accumulator",
+          "mode" : "MemAcc_Accumulator",
           "name" : "ROL",
-          "opcode" : "$2A",
+          "opcode" : "0x2A",
           "bytes" : "1",
           "description" : "Rotate Left"
        },
        {
-          "mode" : "ZeroPage",
+          "mode" : "MemAcc_ZeroPage",
           "description" : "Rotate Left",
           "bytes" : "2",
-          "opcode" : "$26",
+          "opcode" : "0x26",
           "name" : "ROL"
        },
        {
           "bytes" : "2",
           "description" : "Rotate Left",
-          "opcode" : "$36",
+          "opcode" : "0x36",
           "name" : "ROL",
-          "mode" : "ZeroPage,X"
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
           "bytes" : "3",
           "description" : "Rotate Left",
           "name" : "ROL",
-          "opcode" : "$2E",
-          "mode" : "Absolute"
+          "opcode" : "0x2E",
+          "mode" : "MemAcc_Absolute"
        },
        {
           "name" : "ROL",
-          "opcode" : "$3E",
+          "opcode" : "0x3E",
           "bytes" : "3",
           "description" : "Rotate Left",
-          "mode" : "Absolute,X"
+          "mode" : "MemAcc_Absolute_X"
        },
        {
           "name" : "ROR",
-          "opcode" : "$6A",
+          "opcode" : "0x6A",
           "description" : "Rotate Right",
           "bytes" : "1",
-          "mode" : "Accumulator"
+          "mode" : "MemAcc_Accumulator"
        },
        {
           "bytes" : "2",
           "description" : "Rotate Right",
-          "opcode" : "$66",
+          "opcode" : "0x66",
           "name" : "ROR",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "mode" : "ZeroPage,X",
-          "opcode" : "$76",
+          "mode" : "MemAcc_ZeroPage_X",
+          "opcode" : "0x76",
           "name" : "ROR",
           "bytes" : "2",
           "description" : "Rotate Right"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "bytes" : "3",
           "description" : "Rotate Right",
           "name" : "ROR",
-          "opcode" : "$6E"
+          "opcode" : "0x6E"
        },
        {
-          "mode" : "Absolute,X",
+          "mode" : "MemAcc_Absolute_X",
           "description" : "Rotate Right",
           "bytes" : "3",
           "name" : "ROR",
-          "opcode" : "$7E"
+          "opcode" : "0x7E"
        },
        {
           "mode" : "Implied",
           "bytes" : "1",
           "description" : "Return from Interrupt",
-          "opcode" : "$40",
+          "opcode" : "0x40",
           "name" : "RTI"
        },
        {
           "mode" : "Implied",
           "name" : "RTS",
-          "opcode" : "$60",
+          "opcode" : "0x60",
           "description" : "Return from Subroutine",
           "bytes" : "1"
        },
        {
           "bytes" : "2",
           "description" : "Subtract with Carry",
-          "opcode" : "$E9",
+          "opcode" : "0xE9",
           "name" : "SBC",
-          "mode" : "Immediate"
+          "mode" : "MemAcc_Immediate"
        },
        {
           "name" : "SBC",
-          "opcode" : "$E5",
+          "opcode" : "0xE5",
           "bytes" : "2",
           "description" : "Subtract with Carry",
-          "mode" : "ZeroPage"
+          "mode" : "MemAcc_ZeroPage"
        },
        {
           "description" : "Subtract with Carry",
           "bytes" : "2",
           "name" : "SBC",
-          "opcode" : "$F5",
-          "mode" : "ZeroPage,X"
+          "opcode" : "0xF5",
+          "mode" : "MemAcc_ZeroPage_X"
        },
        {
           "name" : "SBC",
-          "opcode" : "$ED",
+          "opcode" : "0xED",
           "description" : "Subtract with Carry",
           "bytes" : "3",
-          "mode" : "Absolute"
+          "mode" : "MemAcc_Absolute"
        },
        {
-          "opcode" : "$FD",
+          "opcode" : "0xFD",
           "name" : "SBC",
           "description" : "Subtract with Carry",
           "bytes" : "3",
-          "mode" : "Absolute,X"
+          "mode" : "MemAcc_Absolute_X"
        },
        {
-          "mode" : "Absolute,Y",
-          "opcode" : "$F9",
+          "mode" : "MemAcc_Absolute_Y",
+          "opcode" : "0xF9",
           "name" : "SBC",
           "bytes" : "3",
           "description" : "Subtract with Carry"
        },
        {
-          "mode" : "Indirect,X",
-          "opcode" : "$E1",
+          "mode" : "MemAcc_Indexed_X",
+          "opcode" : "0xE1",
           "name" : "SBC",
           "description" : "Subtract with Carry",
           "bytes" : "2"
@@ -908,26 +908,26 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "2",
           "description" : "Subtract with Carry",
           "name" : "SBC",
-          "opcode" : "$F1",
-          "mode" : "Indirect,Y"
+          "opcode" : "0xF1",
+          "mode" : "MemAcc_Indexed_Y"
        },
        {
           "description" : "Set Carry Flag",
           "bytes" : "1",
           "name" : "SEC",
-          "opcode" : "$38",
+          "opcode" : "0x38",
           "mode" : "Implied"
        },
        {
           "name" : "SED",
-          "opcode" : "$F8",
+          "opcode" : "0xF8",
           "description" : "Set Decimal Flag",
           "bytes" : "1",
           "mode" : "Implied"
        },
        {
           "mode" : "Implied",
-          "opcode" : "$78",
+          "opcode" : "0x78",
           "name" : "SEI",
           "bytes" : "1",
           "description" : "Set Interrupt Disable"
@@ -936,19 +936,19 @@ const std::string& GetOpcodesJsonString()
           "description" : "Store Accumulator",
           "bytes" : "2",
           "name" : "STA",
-          "opcode" : "$85",
-          "mode" : "ZeroPage"
+          "opcode" : "0x85",
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "mode" : "ZeroPage,X",
+          "mode" : "MemAcc_ZeroPage_X",
           "bytes" : "2",
           "description" : "Store Accumulator",
           "name" : "STA",
-          "opcode" : "$95"
+          "opcode" : "0x95"
        },
        {
-          "mode" : "Absolute",
-          "opcode" : "$8D",
+          "mode" : "MemAcc_Absolute",
+          "opcode" : "0x8D",
           "name" : "STA",
           "description" : "Store Accumulator",
           "bytes" : "3"
@@ -956,63 +956,63 @@ const std::string& GetOpcodesJsonString()
        {
           "bytes" : "3",
           "description" : "Store Accumulator",
-          "opcode" : "$9D",
+          "opcode" : "0x9D",
           "name" : "STA",
-          "mode" : "Absolute,X"
+          "mode" : "MemAcc_Absolute_X"
        },
        {
           "bytes" : "3",
           "description" : "Store Accumulator",
           "name" : "STA",
-          "opcode" : "$99",
-          "mode" : "Absolute,Y"
+          "opcode" : "0x99",
+          "mode" : "MemAcc_Absolute_Y"
        },
        {
-          "mode" : "Indirect,X",
+          "mode" : "MemAcc_Indexed_X",
           "description" : "Store Accumulator",
           "bytes" : "2",
           "name" : "STA",
-          "opcode" : "$81"
+          "opcode" : "0x81"
        },
        {
           "bytes" : "2",
           "description" : "Store Accumulator",
-          "opcode" : "$91",
+          "opcode" : "0x91",
           "name" : "STA",
-          "mode" : "Indirect,Y"
+          "mode" : "MemAcc_Indexed_Y"
        },
        {
           "bytes" : "2",
           "description" : "Store X Register",
           "name" : "STX",
-          "opcode" : "$86",
-          "mode" : "ZeroPage"
+          "opcode" : "0x86",
+          "mode" : "MemAcc_ZeroPage"
        },
        {
-          "mode" : "ZeroPage,Y",
+          "mode" : "MemAcc_ZeroPage_Y",
           "name" : "STX",
-          "opcode" : "$96",
+          "opcode" : "0x96",
           "bytes" : "2",
           "description" : "Store X Register"
        },
        {
-          "mode" : "Absolute",
+          "mode" : "MemAcc_Absolute",
           "name" : "STX",
-          "opcode" : "$8E",
+          "opcode" : "0x8E",
           "bytes" : "3",
           "description" : "Store X Register"
        },
        {
-          "mode" : "ZeroPage",
+          "mode" : "MemAcc_ZeroPage",
           "name" : "STY",
-          "opcode" : "$84",
+          "opcode" : "0x84",
           "description" : "Store Y Register",
           "bytes" : "2"
        },
        {
-          "mode" : "ZeroPage,X",
+          "mode" : "MemAcc_ZeroPage_X",
           "name" : "STY",
-          "opcode" : "$94",
+          "opcode" : "0x94",
           "bytes" : "2",
           "description" : "Store Y Register"
        },
@@ -1020,13 +1020,13 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "3",
           "description" : "Store Y Register",
           "name" : "STY",
-          "opcode" : "$8C",
-          "mode" : "Absolute"
+          "opcode" : "0x8C",
+          "mode" : "MemAcc_Absolute"
        },
        {
           "mode" : "Implied",
           "name" : "TAX",
-          "opcode" : "$AA",
+          "opcode" : "0xAA",
           "description" : "Transfer Accumulator to X",
           "bytes" : "1"
        },
@@ -1035,27 +1035,27 @@ const std::string& GetOpcodesJsonString()
           "description" : "Transfer Accumulator to Y",
           "bytes" : "1",
           "name" : "TAY",
-          "opcode" : "$A8"
+          "opcode" : "0xA8"
        },
        {
           "mode" : "Implied",
           "bytes" : "1",
           "description" : "Transfer Stack Pointer to X",
           "name" : "TSX",
-          "opcode" : "$BA"
+          "opcode" : "0xBA"
        },
        {
           "mode" : "Implied",
           "bytes" : "1",
           "description" : "Transfer X to Accumulator",
-          "opcode" : "$8A",
+          "opcode" : "0x8A",
           "name" : "TXA"
        },
        {
           "description" : "Transfer X to Stack Pointer",
           "bytes" : "1",
           "name" : "TXS",
-          "opcode" : "$9A",
+          "opcode" : "0x9A",
           "mode" : "Implied"
        },
        {
@@ -1063,7 +1063,7 @@ const std::string& GetOpcodesJsonString()
           "description" : "Transfer Y to Accumulator",
           "bytes" : "1",
           "name" : "TYA",
-          "opcode" : "$98"
+          "opcode" : "0x98"
        }
     ]
 
