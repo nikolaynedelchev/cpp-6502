@@ -1,67 +1,4 @@
 #include "cpu6502Impl.h"
-#include <common/bitwise.h>
-
-#define FLAG_Carry()        Bitwise::Bit(registers.S, Meta::FlagPos_Carry    )
-#define FLAG_Zero()         Bitwise::Bit(registers.S, Meta::FlagPos_Zero     )
-#define FLAG_Interrupt()    Bitwise::Bit(registers.S, Meta::FlagPos_Interrupt)
-#define FLAG_Decimal()      Bitwise::Bit(registers.S, Meta::FlagPos_Decimal  )
-#define FLAG_Break()        Bitwise::Bit(registers.S, Meta::FlagPos_Break    )
-#define FLAG_Overflow()     Bitwise::Bit(registers.S, Meta::FlagPos_Overflow )
-#define FLAG_Negative()     Bitwise::Bit(registers.S, Meta::FlagPos_Negative )
-
-#define FLAG_SET_Carry(v)       Bitwise::SetBit(registers.S, Meta::FlagPos_Carry    , v)
-#define FLAG_SET_Zero(v)        Bitwise::SetBit(registers.S, Meta::FlagPos_Zero     , v)
-#define FLAG_SET_Interrupt(v)   Bitwise::SetBit(registers.S, Meta::FlagPos_Interrupt, v)
-#define FLAG_SET_Decimal(v)     Bitwise::SetBit(registers.S, Meta::FlagPos_Decimal  , v)
-#define FLAG_SET_Break(v)       Bitwise::SetBit(registers.S, Meta::FlagPos_Break    , v)
-#define FLAG_SET_Overflow(v)    Bitwise::SetBit(registers.S, Meta::FlagPos_Overflow , v)
-#define FLAG_SET_Negative(v)    Bitwise::SetBit(registers.S, Meta::FlagPos_Negative , v)
-
-#define FLAGVALUE_ADD_C(a, b, abWord) (((abWord) > 0xff) ? 1 : 0)
-#define FLAGVALUE_ADD_Z(a, b, abWord) ((Byte(abWord) == 0) ? 1 : 0)
-#define FLAGVALUE_ADD_N(a, b, abWord) (Bitwise::Sign(abWord))
-#define FLAGVALUE_ADD_V(a, b, abWord) (( (Bitwise::Sign(a) == Bitwise::Sign(b)) && (Bitwise::Sign(abWord) != Bitwise::Sign(a)) ) ? 1 : 0)
-
-#define FLAGVALUE_SUB_C(a, b, diffWord) (((a) >= (b)) ? 1 : 0)
-#define FLAGVALUE_SUB_Z(a, b, diffWord) ((Byte(diffWord) == 0) ? 1 : 0)
-#define FLAGVALUE_SUB_N(a, b, diffWord) (Bitwise::Sign(diffWord))
-#define FLAGVALUE_SUB_V(a, b, diffWord) (((Bitwise::Sign(a) != Bitwise::Sign(b)) && (Bitwise::Sign(diffWord) != Bitwise::Sign(a))) ? 1 : 0)
-
-#define FLAGVALUE_CMP_C(a, b, diffWord) (((a) >= (b)) ? 1 : 0)
-#define FLAGVALUE_CMP_Z(a, b, diffWord) ((Byte(diffWord) == 0) ? 1 : 0)
-#define FLAGVALUE_CMP_N(a, b, diffWord) (Bitwise::Sign(diffWord))
-
-// ++
-#define FLAGVALUE_INC_Z(result) ((Byte(result) == 0) ? 1 : 0)
-#define FLAGVALUE_INC_N(result) (Bitwise::Sign(result))
-
-// --
-#define FLAGVALUE_DEC_Z(result) ((Byte(result) == 0) ? 1 : 0)
-#define FLAGVALUE_DEC_N(result) (Bitwise::Sign(result))
-
-// AND, ORA, EOR
-#define FLAGVALUE_LOGIC_Z(result) ((Byte(result) == 0) ? 1 : 0)
-#define FLAGVALUE_LOGIC_N(result) (Bitwise::Sign(result))
-
-// ASL (Arithmetic Shift Left)
-#define FLAGVALUE_ASL_C(original) Bitwise::Bit(original, 7)
-#define FLAGVALUE_ASL_Z(result)   ((Byte(result) == 0) ? 1 : 0)
-#define FLAGVALUE_ASL_N(result)   (Bitwise::Sign(result))
-
-// LSR (Logical Shift Right)
-#define FLAGVALUE_LSR_C(original) Bitwise::Bit(original, 0)
-#define FLAGVALUE_LSR_Z(result)   ((Byte(result) == 0) ? 1 : 0)
-#define FLAGVALUE_LSR_N(result)   (Bitwise::Sign(result))  // Always 0, because bit 7 is zero
-
-// ROL (Rotate Left)
-#define FLAGVALUE_ROL_C(original) Bitwise::Bit(original, 7)
-#define FLAGVALUE_ROL_Z(result)   ((Byte(result) == 0) ? 1 : 0)
-#define FLAGVALUE_ROL_N(result)   (Bitwise::Sign(result))
-
-// ROR (Rotate Right)
-#define FLAGVALUE_ROR_C(original) Bitwise::Bit(original, 0)
-#define FLAGVALUE_ROR_Z(result)   ((Byte(result) == 0) ? 1 : 0)
-#define FLAGVALUE_ROR_N(result)   (Bitwise::Sign(result))
 
 namespace cpp6502
 {
@@ -331,6 +268,7 @@ Routine Cpu6502::Impl::WriteData()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// ADC: Add with Carry
 Routine Cpu6502::Impl::Instr_ADC()
 {
     Execute( ReadAddress() );
@@ -343,24 +281,25 @@ Routine Cpu6502::Impl::Instr_ADC()
 
     Execute( ReadData() );
 
-    state.helper16 = registers.A + state.data + FLAG_Carry();
+    state.helper16 = registers.A + state.data + registers.Carry();
     state.helper8 = Byte(state.helper16);
 
-    FLAG_SET_Carry( state.helper16 > 255 ? 1 : 0 );
-    FLAG_SET_Zero( state.helper8 == 0 ? 1 : 0 );
+    registers.SetCarry( state.helper16 > 255 ? 1 : 0 );
+    registers.SetZero( state.helper8 == 0 ? 1 : 0 );
 
-    FLAG_SET_Overflow(
+    registers.SetOverflow(
                 (Bitwise::Sign(registers.A) == Bitwise::Sign(state.data)) &&
                 (Bitwise::Sign(registers.A) != Bitwise::Sign(state.helper8))
                 ? 1 : 0);
 
-    FLAG_SET_Negative( Bitwise::Sign(state.helper8) );
+    registers.SetNegative( Bitwise::Sign(state.helper8) );
 
     registers.A = state.helper8;
 
     co_return;
 }
 
+// AND: Logical AND
 Routine Cpu6502::Impl::Instr_AND()
 {
     Execute( ReadAddress() );
@@ -375,23 +314,24 @@ Routine Cpu6502::Impl::Instr_AND()
 
     registers.A &= state.data;
 
-    FLAG_SET_Zero( registers.A == 0 ? 1 : 0 );
-    FLAG_SET_Negative( Bitwise::Sign(registers.A) );
+    registers.SetZero( registers.A == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign(registers.A) );
 
     co_return;
 }
 
+// ASL: Arithmetic Shift Left
 Routine Cpu6502::Impl::Instr_ASL()
 {
     Execute( ReadAddress() );
     Execute( ReadData() );
 
-    FLAG_SET_Carry( Bitwise::Bit(state.data, 7) );
+    registers.SetCarry( Bitwise::Bit(state.data, 7) );
 
     state.data <<= 1;
 
-    FLAG_SET_Zero( state.data == 0 ? 1 : 0 );
-    FLAG_SET_Negative( Bitwise::Sign(state.data) );
+    registers.SetZero( state.data == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign(state.data) );
 
     WaitClock();
 
@@ -400,11 +340,12 @@ Routine Cpu6502::Impl::Instr_ASL()
     co_return;
 }
 
+// BCC: Branch if Carry Clear
 Routine Cpu6502::Impl::Instr_BCC()
 {
     Execute( ReadAddress() );
 
-    if (FLAG_Carry())
+    if (0 == registers.Carry())
     {
         co_return;
     }
@@ -420,17 +361,29 @@ Routine Cpu6502::Impl::Instr_BCC()
     co_return;
 }
 
+// BCS: Branch if Carry Set
 Routine Cpu6502::Impl::Instr_BCS()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "BCS")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+
+    if (0 != registers.Carry())
+    {
+        co_return;
+    }
+
+    if (state.nextPage)
+    {
+        WaitClock();
+    }
+
+    registers.PC = state.address;
+    WaitClock();
 
     co_return;
 }
 
+
+// BEQ: Branch if Equal
 Routine Cpu6502::Impl::Instr_BEQ()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -442,6 +395,7 @@ Routine Cpu6502::Impl::Instr_BEQ()
     co_return;
 }
 
+// BIT: Bit Test
 Routine Cpu6502::Impl::Instr_BIT()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -453,6 +407,7 @@ Routine Cpu6502::Impl::Instr_BIT()
     co_return;
 }
 
+// BMI: Branch if Minus
 Routine Cpu6502::Impl::Instr_BMI()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -464,6 +419,7 @@ Routine Cpu6502::Impl::Instr_BMI()
     co_return;
 }
 
+// BNE: Branch if Not Equal
 Routine Cpu6502::Impl::Instr_BNE()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -475,6 +431,7 @@ Routine Cpu6502::Impl::Instr_BNE()
     co_return;
 }
 
+// BPL: Branch if Positive
 Routine Cpu6502::Impl::Instr_BPL()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -486,6 +443,7 @@ Routine Cpu6502::Impl::Instr_BPL()
     co_return;
 }
 
+// BRK: Force Interrupt
 Routine Cpu6502::Impl::Instr_BRK()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -497,6 +455,7 @@ Routine Cpu6502::Impl::Instr_BRK()
     co_return;
 }
 
+// BVC: Branch if Overflow Clear
 Routine Cpu6502::Impl::Instr_BVC()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -508,6 +467,7 @@ Routine Cpu6502::Impl::Instr_BVC()
     co_return;
 }
 
+// BVS: Branch if Overflow Set
 Routine Cpu6502::Impl::Instr_BVS()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -519,6 +479,7 @@ Routine Cpu6502::Impl::Instr_BVS()
     co_return;
 }
 
+// CLC: Clear Carry Flag
 Routine Cpu6502::Impl::Instr_CLC()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -530,6 +491,7 @@ Routine Cpu6502::Impl::Instr_CLC()
     co_return;
 }
 
+// CLD: Clear Decimal Mode
 Routine Cpu6502::Impl::Instr_CLD()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -541,6 +503,7 @@ Routine Cpu6502::Impl::Instr_CLD()
     co_return;
 }
 
+// CLI: Clear Interrupt Disable
 Routine Cpu6502::Impl::Instr_CLI()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -552,6 +515,7 @@ Routine Cpu6502::Impl::Instr_CLI()
     co_return;
 }
 
+// CLV: Clear Overflow Flag
 Routine Cpu6502::Impl::Instr_CLV()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -563,6 +527,7 @@ Routine Cpu6502::Impl::Instr_CLV()
     co_return;
 }
 
+// CMP: Compare
 Routine Cpu6502::Impl::Instr_CMP()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -574,6 +539,7 @@ Routine Cpu6502::Impl::Instr_CMP()
     co_return;
 }
 
+// CPX: Compare X Register
 Routine Cpu6502::Impl::Instr_CPX()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -585,6 +551,7 @@ Routine Cpu6502::Impl::Instr_CPX()
     co_return;
 }
 
+// CPY: Compare Y Register
 Routine Cpu6502::Impl::Instr_CPY()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -596,6 +563,7 @@ Routine Cpu6502::Impl::Instr_CPY()
     co_return;
 }
 
+// DEC: Decrement Memory
 Routine Cpu6502::Impl::Instr_DEC()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -607,6 +575,7 @@ Routine Cpu6502::Impl::Instr_DEC()
     co_return;
 }
 
+// DEX: Decrement X Register
 Routine Cpu6502::Impl::Instr_DEX()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -618,6 +587,7 @@ Routine Cpu6502::Impl::Instr_DEX()
     co_return;
 }
 
+// DEY: Decrement Y Register
 Routine Cpu6502::Impl::Instr_DEY()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -629,6 +599,7 @@ Routine Cpu6502::Impl::Instr_DEY()
     co_return;
 }
 
+// EOR: Exclusive OR
 Routine Cpu6502::Impl::Instr_EOR()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -640,6 +611,7 @@ Routine Cpu6502::Impl::Instr_EOR()
     co_return;
 }
 
+// INC: Increment Memory
 Routine Cpu6502::Impl::Instr_INC()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -651,6 +623,7 @@ Routine Cpu6502::Impl::Instr_INC()
     co_return;
 }
 
+// INX: Increment X Register
 Routine Cpu6502::Impl::Instr_INX()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -662,6 +635,7 @@ Routine Cpu6502::Impl::Instr_INX()
     co_return;
 }
 
+// INY: Increment Y Register
 Routine Cpu6502::Impl::Instr_INY()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -673,6 +647,7 @@ Routine Cpu6502::Impl::Instr_INY()
     co_return;
 }
 
+// JMP: Jump
 Routine Cpu6502::Impl::Instr_JMP()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -684,6 +659,7 @@ Routine Cpu6502::Impl::Instr_JMP()
     co_return;
 }
 
+// JSR: Jump to Subroutine
 Routine Cpu6502::Impl::Instr_JSR()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -695,6 +671,7 @@ Routine Cpu6502::Impl::Instr_JSR()
     co_return;
 }
 
+// LDA: Load Accumulator
 Routine Cpu6502::Impl::Instr_LDA()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -706,6 +683,7 @@ Routine Cpu6502::Impl::Instr_LDA()
     co_return;
 }
 
+// LDX: Load X Register
 Routine Cpu6502::Impl::Instr_LDX()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -717,6 +695,7 @@ Routine Cpu6502::Impl::Instr_LDX()
     co_return;
 }
 
+// LDY: Load Y Register
 Routine Cpu6502::Impl::Instr_LDY()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -728,6 +707,7 @@ Routine Cpu6502::Impl::Instr_LDY()
     co_return;
 }
 
+// LSR: Logical Shift Right
 Routine Cpu6502::Impl::Instr_LSR()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -739,6 +719,7 @@ Routine Cpu6502::Impl::Instr_LSR()
     co_return;
 }
 
+// NOP: No Operation
 Routine Cpu6502::Impl::Instr_NOP()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -750,6 +731,7 @@ Routine Cpu6502::Impl::Instr_NOP()
     co_return;
 }
 
+// ORA: Logical Inclusive OR
 Routine Cpu6502::Impl::Instr_ORA()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -761,6 +743,7 @@ Routine Cpu6502::Impl::Instr_ORA()
     co_return;
 }
 
+// PHA: Push Accumulator
 Routine Cpu6502::Impl::Instr_PHA()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -772,6 +755,7 @@ Routine Cpu6502::Impl::Instr_PHA()
     co_return;
 }
 
+// PHP: Push Processor Status
 Routine Cpu6502::Impl::Instr_PHP()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -783,6 +767,7 @@ Routine Cpu6502::Impl::Instr_PHP()
     co_return;
 }
 
+// PLA: Pull Accumulator
 Routine Cpu6502::Impl::Instr_PLA()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -794,6 +779,7 @@ Routine Cpu6502::Impl::Instr_PLA()
     co_return;
 }
 
+// PLP: Pull Processor Status
 Routine Cpu6502::Impl::Instr_PLP()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -805,6 +791,7 @@ Routine Cpu6502::Impl::Instr_PLP()
     co_return;
 }
 
+// ROL: Rotate Left
 Routine Cpu6502::Impl::Instr_ROL()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -816,6 +803,7 @@ Routine Cpu6502::Impl::Instr_ROL()
     co_return;
 }
 
+// ROR: Rotate Right
 Routine Cpu6502::Impl::Instr_ROR()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -827,6 +815,7 @@ Routine Cpu6502::Impl::Instr_ROR()
     co_return;
 }
 
+// RTI: Return from Interrupt
 Routine Cpu6502::Impl::Instr_RTI()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -838,6 +827,7 @@ Routine Cpu6502::Impl::Instr_RTI()
     co_return;
 }
 
+// RTS: Return from Subroutine
 Routine Cpu6502::Impl::Instr_RTS()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -849,6 +839,7 @@ Routine Cpu6502::Impl::Instr_RTS()
     co_return;
 }
 
+// SBC: Subtract with Carry
 Routine Cpu6502::Impl::Instr_SBC()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -860,6 +851,7 @@ Routine Cpu6502::Impl::Instr_SBC()
     co_return;
 }
 
+// SEC: Set Carry Flag
 Routine Cpu6502::Impl::Instr_SEC()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -871,6 +863,7 @@ Routine Cpu6502::Impl::Instr_SEC()
     co_return;
 }
 
+// SED: Set Decimal Flag
 Routine Cpu6502::Impl::Instr_SED()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -882,6 +875,7 @@ Routine Cpu6502::Impl::Instr_SED()
     co_return;
 }
 
+// SEI: Set Interrupt Disable
 Routine Cpu6502::Impl::Instr_SEI()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -893,6 +887,7 @@ Routine Cpu6502::Impl::Instr_SEI()
     co_return;
 }
 
+// STA: Store Accumulator
 Routine Cpu6502::Impl::Instr_STA()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -904,6 +899,7 @@ Routine Cpu6502::Impl::Instr_STA()
     co_return;
 }
 
+// STX: Store X Register
 Routine Cpu6502::Impl::Instr_STX()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -915,6 +911,7 @@ Routine Cpu6502::Impl::Instr_STX()
     co_return;
 }
 
+// STY: Store Y Register
 Routine Cpu6502::Impl::Instr_STY()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -926,6 +923,7 @@ Routine Cpu6502::Impl::Instr_STY()
     co_return;
 }
 
+// TAX: Transfer Accumulator to X
 Routine Cpu6502::Impl::Instr_TAX()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -937,6 +935,7 @@ Routine Cpu6502::Impl::Instr_TAX()
     co_return;
 }
 
+// TAY: Transfer Accumulator to Y
 Routine Cpu6502::Impl::Instr_TAY()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -948,6 +947,7 @@ Routine Cpu6502::Impl::Instr_TAY()
     co_return;
 }
 
+// TSX: Transfer Stack Pointer to X
 Routine Cpu6502::Impl::Instr_TSX()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -959,6 +959,7 @@ Routine Cpu6502::Impl::Instr_TSX()
     co_return;
 }
 
+// TXA: Transfer X to Accumulator
 Routine Cpu6502::Impl::Instr_TXA()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -970,6 +971,7 @@ Routine Cpu6502::Impl::Instr_TXA()
     co_return;
 }
 
+// TXS: Transfer X to Stack Pointer
 Routine Cpu6502::Impl::Instr_TXS()
 {
     Error("Cpu6502::Impl", "Not implemented")
@@ -981,6 +983,7 @@ Routine Cpu6502::Impl::Instr_TXS()
     co_return;
 }
 
+// TYA: Transfer Y to Accumulator
 Routine Cpu6502::Impl::Instr_TYA()
 {
     Error("Cpu6502::Impl", "Not implemented")

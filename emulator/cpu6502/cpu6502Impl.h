@@ -1,6 +1,7 @@
 #pragma once
 #include "cpu6502.h"
 #include <common/routine.h>
+#include <common/bitwise.h>
 
 #define WaitClock() co_yield Routine::Empty{}
 #define WaitRoutine(r) while(r.Resume()){co_yield Routine::Empty{};}
@@ -29,6 +30,22 @@ struct Cpu6502::Impl
         Byte X = 0;
         Byte Y = 0;
         Byte S = 0;
+
+        inline Byte Carry()                 noexcept { return Bitwise::Bit(S, 0 ) ;}
+        inline Byte Zero()                  noexcept { return Bitwise::Bit(S, 1 ) ;}
+        inline Byte Interrupt()             noexcept { return Bitwise::Bit(S, 2 ) ;}
+        inline Byte Decimal()               noexcept { return Bitwise::Bit(S, 3 ) ;}
+        inline Byte Break()                 noexcept { return Bitwise::Bit(S, 4 ) ;}
+        inline Byte Overflow()              noexcept { return Bitwise::Bit(S, 5 ) ;}
+        inline Byte Negative()              noexcept { return Bitwise::Bit(S, 6 ) ;}
+
+        inline void SetCarry(Byte f)        noexcept { Bitwise::SetBit(S, 0, f ) ;}
+        inline void SetZero(Byte f)         noexcept { Bitwise::SetBit(S, 1, f ) ;}
+        inline void SetInterrupt(Byte f)    noexcept { Bitwise::SetBit(S, 2, f ) ;}
+        inline void SetDecimal(Byte f)      noexcept { Bitwise::SetBit(S, 3, f ) ;}
+        inline void SetBreak(Byte f)        noexcept { Bitwise::SetBit(S, 4, f ) ;}
+        inline void SetOverflow(Byte f)     noexcept { Bitwise::SetBit(S, 5, f ) ;}
+        inline void SetNegative(Byte f)     noexcept { Bitwise::SetBit(S, 6, f ) ;}
     } registers;
 
     struct
