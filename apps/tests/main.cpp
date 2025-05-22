@@ -2,24 +2,26 @@
 #include <common/common.h>
 #include <common/routine.h>
 
-#define WaitClock() co_await Routine::Suspend{}
+static const char* s_yieldStack[8];
+
+#define WaitClock(msg) co_yield msg
 #define WaitRoutine(r) while(r.Resume()){co_await Routine::Suspend{};}
 namespace cpp6502::tests
 {
 
 Routine CoroutineZ() {
     fmt::println("CoroutineZ step 1");
-    WaitClock();
+    WaitClock("Co-Z-1");
     fmt::println("CoroutineZ step 2");
-    WaitClock();
+    WaitClock("Co-Z-2");
     fmt::println("CoroutineZ step 3");
 }
 
 Routine CoroutineA() {
     fmt::println("CoroutineA step 1");
-    WaitClock();
+    WaitClock("Co-A-1");
     fmt::println("CoroutineA step 2");
-    WaitClock();
+    WaitClock("Co-A-2");
     fmt::println("CoroutineA step 3 (calling Z)");
     auto z = CoroutineZ();
     WaitRoutine(z);
@@ -27,21 +29,24 @@ Routine CoroutineA() {
 }
 
 Routine CoroutineB() {
+    fmt::println("CoroutineB step 0, yield test");
+    co_yield Routine::Empty();
     fmt::println("CoroutineB step 1");
-    WaitClock();
+    WaitClock("Co-B-1");
     fmt::println("CoroutineB step 2 (calling A)");
     auto r = CoroutineA();
     WaitRoutine(r);
     fmt::println("CoroutineB step 3 (exit A)");
-    WaitClock();
+    WaitClock("Co-B-3");
     fmt::println("CoroutineB step 3");
 }
 
 void CoroutineTestB()
 {
     fmt::println("Creating coroutine B");
-    Routine b;
-    b = CoroutineB();
+    Routine b = CoroutineB();
+    b.Resume();
+    fmt::println("Yielded value: {}", b.LastYielded());
     fmt::println("Executing coroutine B");
 
     fmt::println("CLOCK...");
