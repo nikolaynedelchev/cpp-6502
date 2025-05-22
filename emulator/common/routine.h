@@ -15,13 +15,21 @@ struct Routine
         void await_resume() const noexcept;
     };
 
+    struct Empty{};
+
     struct promise_type
     {
+        const char* current_yield = nullptr;
+
+        promise_type();
         Routine get_return_object() noexcept;
         std::suspend_always initial_suspend() noexcept;
         std::suspend_always final_suspend() noexcept;
         void return_void() noexcept;
         void unhandled_exception() noexcept;
+
+        std::suspend_always yield_value(const char* value) noexcept;
+        std::suspend_always yield_value(Empty) noexcept;
 
         // use custom memory allocation
         static void* operator new(size_t size);
@@ -38,11 +46,14 @@ struct Routine
     Routine(Routine&& other) noexcept;
     Routine& operator=(Routine&& other) noexcept;
 
+    explicit operator bool() const noexcept;
+
     ~Routine();
 
     bool Done() const;
     bool Resume();
     void Destroy();
+    const char* LastYielded() const noexcept;
 
     std::coroutine_handle<promise_type> handle_;
 };

@@ -33,6 +33,17 @@ void Routine::promise_type::unhandled_exception() noexcept
     std::terminate();
 }
 
+std::suspend_always Routine::promise_type::yield_value(const char *value) noexcept
+{
+    current_yield = value;
+    return {};
+}
+
+std::suspend_always Routine::promise_type::yield_value(Empty) noexcept
+{
+    return {};
+}
+
 void *Routine::promise_type::operator new(size_t size)
 {
     return MemPool::Malloc(size);
@@ -79,6 +90,11 @@ Routine &Routine::operator=(Routine &&other) noexcept
     return *this;
 }
 
+Routine::operator bool() const noexcept
+{
+    return handle_ && (!handle_.done());
+}
+
 Routine::~Routine()
 {
     Destroy();
@@ -95,10 +111,11 @@ bool Routine::Done() const
 
 bool Routine::Resume()
 {
-    if (!handle_.done())
+    if (!handle_ || handle_.done())
     {
-        handle_.resume();
+        return false;
     }
+    handle_.resume();
     return !handle_.done();
 }
 
@@ -109,6 +126,15 @@ void Routine::Destroy()
         handle_.destroy();
     }
     handle_ = {};
+}
+
+const char *Routine::LastYielded() const noexcept
+{
+    if (handle_)
+    {
+        return handle_.promise().current_yield;
+    }
+    return nullptr;
 }
 
 
