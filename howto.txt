@@ -3,3 +3,34 @@ git submodule update --init --recursive
 
 ./vcpkg/bootstrap-vcpkg.sh
 
+
+## resources
+
+# instruction set
+http://www.6502.org/tutorials/6502opcodes.html
+
+# instruction set
+https://www.masswerk.at/6502/6502_instruction_set.html
+
+# tutorials ( see section : Tutorials, References, and Primers )
+http://www.6502.org/tutorials/
+
+# test tools
+http://www.6502.org/tools/emu/
+
+# compilers
+http://www.6502.org/tools/lang/
+
+# visual transistor-level simulation of the 6502 CPU
+http://www.visual6502.org/
+
+# resource site (investigate it)
+https://westerndesigncenter.com/wdc/
+
+# tests
+https://github.com/Klaus2m5/6502_65C02_functional_tests
+http://www.6502.org/tutorials/decimal_mode.html#B
+
+# game roms
+https://datacrystal.tcrf.net/wiki/Category:Games_by_platform
+
