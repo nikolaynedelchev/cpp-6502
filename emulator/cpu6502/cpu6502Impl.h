@@ -6,6 +6,7 @@
 #define WaitClock() co_yield Routine::Empty{}
 #define WaitRoutine(r) while(r.Resume()){co_yield Routine::Empty{};}
 #define Execute(func) {auto r = func; WaitRoutine(r);}
+#define CallMember(member) ((*this).*(member))()
 
 namespace cpp6502
 {
@@ -19,38 +20,47 @@ struct Cpu6502::Impl
 
     Impl(IMemory* memory);
 
+    void PowerOn();
     void Reset();
     void Clock();
 
     struct
     {
         Address PC = 0;
-        Byte SP = 0;
+        Byte SP = 0xFF;
         Byte A = 0;
         Byte X = 0;
         Byte Y = 0;
-        Byte S = 0;
+        Byte S = 1 << 5; // UnusedFlag should always read as 1
 
-        inline Byte Carry()                 noexcept { return Bitwise::Bit(S, 0 ) ;}
-        inline Byte Zero()                  noexcept { return Bitwise::Bit(S, 1 ) ;}
-        inline Byte Interrupt()             noexcept { return Bitwise::Bit(S, 2 ) ;}
-        inline Byte Decimal()               noexcept { return Bitwise::Bit(S, 3 ) ;}
-        inline Byte Break()                 noexcept { return Bitwise::Bit(S, 4 ) ;}
-        inline Byte Overflow()              noexcept { return Bitwise::Bit(S, 5 ) ;}
-        inline Byte Negative()              noexcept { return Bitwise::Bit(S, 6 ) ;}
+        inline Byte Carry()         const   noexcept { return Bitwise::Bit(S, 0 ) ;}
+        inline Byte Zero()          const   noexcept { return Bitwise::Bit(S, 1 ) ;}
+        inline Byte Interrupt()     const   noexcept { return Bitwise::Bit(S, 2 ) ;}
+        inline Byte Decimal()       const   noexcept { return Bitwise::Bit(S, 3 ) ;}
+        inline Byte Break()         const   noexcept { return 0; }          //4
+        inline Byte UnusedFlag()    const   noexcept { return 1; }          //5
+        inline Byte Overflow()      const   noexcept { return Bitwise::Bit(S, 6 ) ;}
+        inline Byte Negative()      const   noexcept { return Bitwise::Bit(S, 7 ) ;}
 
         inline void SetCarry(Byte f)        noexcept { Bitwise::SetBit(S, 0, f ) ;}
         inline void SetZero(Byte f)         noexcept { Bitwise::SetBit(S, 1, f ) ;}
         inline void SetInterrupt(Byte f)    noexcept { Bitwise::SetBit(S, 2, f ) ;}
         inline void SetDecimal(Byte f)      noexcept { Bitwise::SetBit(S, 3, f ) ;}
-        inline void SetBreak(Byte f)        noexcept { Bitwise::SetBit(S, 4, f ) ;}
-        inline void SetOverflow(Byte f)     noexcept { Bitwise::SetBit(S, 5, f ) ;}
-        inline void SetNegative(Byte f)     noexcept { Bitwise::SetBit(S, 6, f ) ;}
+        inline void SetBreak()              noexcept { Bitwise::SetBit(S, 4, 0 ) ;}
+        inline void SetUnusedFlag()         noexcept { Bitwise::SetBit(S, 5, 1 ) ;}
+        inline void SetOverflow(Byte f)     noexcept { Bitwise::SetBit(S, 6, f ) ;}
+        inline void SetNegative(Byte f)     noexcept { Bitwise::SetBit(S, 7, f ) ;}
+
+        inline void ApplyPush()             noexcept { SP--; }
+        inline void ApplyPool()             noexcept { SP++; }
+        inline Word StackAddress()          noexcept { return Word(0x0100) + SP; }
+
     } registers;
 
     struct
     {
         Byte opcode = 0;
+        InstructionRoutine instruction;
 
         Byte operand[2] = {0, 0};
         Byte indirect[2] = {0, 0};
@@ -64,6 +74,17 @@ struct Cpu6502::Impl
         Byte helper8;
         Byte helper16;
     } state;
+
+    struct
+    {
+        // An original 6502 has does not correctly fetch the target
+        // address if the indirect vector falls on a page boundary
+        // (e.g. $xxFF where xx is any value from $00 to $FF).
+        // In this case fetches the LSB from $xxFF as expected
+        // but takes the MSB from $xx00.
+        // This is fixed in some later chips like the 65SC02
+        bool originalIndirectFetch = true;
+    }cfg;
 
     std::string ToString() const noexcept;
 
@@ -146,21 +167,23 @@ struct Cpu6502::Impl::Instruction
 
 struct Cpu6502::Impl::Meta
 {
-    static constexpr uint16_t FlagPos_Carry     = 0;
-    static constexpr uint16_t FlagPos_Zero      = 1;
-    static constexpr uint16_t FlagPos_Interrupt = 2;
-    static constexpr uint16_t FlagPos_Decimal   = 3;
-    static constexpr uint16_t FlagPos_Break     = 4;
-    static constexpr uint16_t FlagPos_Overflow  = 5;
-    static constexpr uint16_t FlagPos_Negative  = 6;
+    static constexpr Byte FlagPos_Carry     = 0;
+    static constexpr Byte FlagPos_Zero      = 1;
+    static constexpr Byte FlagPos_Interrupt = 2;
+    static constexpr Byte FlagPos_Decimal   = 3;
+    static constexpr Byte FlagPos_Break     = 4;
+    static constexpr Byte FlagPos_Unused    = 5;
+    static constexpr Byte FlagPos_Overflow  = 6;
+    static constexpr Byte FlagPos_Negative  = 7;
 
-    static constexpr uint16_t FlagMask_Carry     = (1 << FlagPos_Carry);
-    static constexpr uint16_t FlagMask_Zero      = (1 << FlagPos_Zero);
-    static constexpr uint16_t FlagMask_Interrupt = (1 << FlagPos_Interrupt);
-    static constexpr uint16_t FlagMask_Decimal   = (1 << FlagPos_Decimal);
-    static constexpr uint16_t FlagMask_Break     = (1 << FlagPos_Break);
-    static constexpr uint16_t FlagMask_Overflow  = (1 << FlagPos_Overflow);
-    static constexpr uint16_t FlagMask_Negative  = (1 << FlagPos_Negative);
+    static constexpr Byte FlagMask_Carry     = (1 << FlagPos_Carry);
+    static constexpr Byte FlagMask_Zero      = (1 << FlagPos_Zero);
+    static constexpr Byte FlagMask_Interrupt = (1 << FlagPos_Interrupt);
+    static constexpr Byte FlagMask_Decimal   = (1 << FlagPos_Decimal);
+    static constexpr Byte FlagMask_Break     = (1 << FlagPos_Break);
+    static constexpr Byte FlagMask_Unused    = (1 << FlagPos_Unused);
+    static constexpr Byte FlagMask_Overflow  = (1 << FlagPos_Overflow);
+    static constexpr Byte FlagMask_Negative  = (1 << FlagPos_Negative);
 
     static constexpr uint16_t MemAcc_Implied        = ( 0 << 0  );
     static constexpr uint16_t MemAcc_Immediate      = ( 1 << 0  );
@@ -175,7 +198,8 @@ struct Cpu6502::Impl::Meta
     static constexpr uint16_t MemAcc_Indirect       = ( 1 << 9  );
     static constexpr uint16_t MemAcc_Indexed_X      = ( 1 << 10 );
     static constexpr uint16_t MemAcc_Indexed_Y      = ( 1 << 11 );
-    static constexpr uint16_t MemAcc_All            = ( 1 << 12 ) - 1;
+    static constexpr uint16_t MemAcc_Aux_ResetVec   = ( 1 << 12 );
+    static constexpr uint16_t MemAcc_All            = ( 1 << 13 ) - 1;
 
     static constexpr uint16_t MemAcc_INVALID        = ( 0xffff  );
 
