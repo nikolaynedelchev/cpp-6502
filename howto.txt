@@ -21,6 +21,9 @@ https://www.masswerk.at/6502/6502_instruction_set.html
 # tutorials ( see section : Tutorials, References, and Primers )
 http://www.6502.org/tutorials/
 
+# nice tutorial
+https://wilsonminesco.com/6502primer/
+
 # test tools
 http://www.6502.org/tools/emu/
 
