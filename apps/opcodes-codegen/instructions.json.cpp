@@ -7,6 +7,8 @@ const std::string& GetOpcodesJsonString()
 {
 
     static std::string s_opcopdesString = R"(
+{
+    "opcodes":
     [
        {
           "bytes" : "2",
@@ -216,7 +218,7 @@ const std::string& GetOpcodesJsonString()
           "opcode" : "0x00",
           "description" : "Force Interrupt",
           "bytes" : "1",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
           "mode" : "MemAcc_Relative",
@@ -233,7 +235,7 @@ const std::string& GetOpcodesJsonString()
           "opcode" : "0x70"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "opcode" : "0x18",
           "name" : "CLC",
           "bytes" : "1",
@@ -244,17 +246,17 @@ const std::string& GetOpcodesJsonString()
           "description" : "Clear Decimal Mode",
           "name" : "CLD",
           "opcode" : "0xD8",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "bytes" : "1",
           "description" : "Clear Interrupt Disable",
           "opcode" : "0x58",
           "name" : "CLI"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "description" : "Clear Overflow Flag",
           "bytes" : "1",
           "opcode" : "0xB8",
@@ -391,10 +393,10 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "1",
           "name" : "DEX",
           "opcode" : "0xCA",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "bytes" : "1",
           "description" : "Decrement Y Register",
           "opcode" : "0x88",
@@ -485,7 +487,7 @@ const std::string& GetOpcodesJsonString()
           "mode" : "MemAcc_Absolute_X"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "opcode" : "0xE8",
           "name" : "INX",
           "description" : "Increment X Register",
@@ -496,7 +498,7 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "1",
           "name" : "INY",
           "opcode" : "0xC8",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
           "mode" : "MemAcc_Absolute",
@@ -681,7 +683,7 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "3"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "description" : "No Operation",
           "bytes" : "1",
           "opcode" : "0xEA",
@@ -748,17 +750,17 @@ const std::string& GetOpcodesJsonString()
           "name" : "PHA",
           "bytes" : "1",
           "description" : "Push Accumulator",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "opcode" : "0x08",
           "name" : "PHP",
           "description" : "Push Processor Status",
           "bytes" : "1"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "bytes" : "1",
           "description" : "Pull Accumulator",
           "name" : "PLA",
@@ -769,7 +771,7 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "1",
           "opcode" : "0x28",
           "name" : "PLP",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
           "mode" : "MemAcc_Accumulator",
@@ -842,14 +844,14 @@ const std::string& GetOpcodesJsonString()
           "opcode" : "0x7E"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "bytes" : "1",
           "description" : "Return from Interrupt",
           "opcode" : "0x40",
           "name" : "RTI"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "name" : "RTS",
           "opcode" : "0x60",
           "description" : "Return from Subroutine",
@@ -916,17 +918,17 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "1",
           "name" : "SEC",
           "opcode" : "0x38",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
           "name" : "SED",
           "opcode" : "0xF8",
           "description" : "Set Decimal Flag",
           "bytes" : "1",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "opcode" : "0x78",
           "name" : "SEI",
           "bytes" : "1",
@@ -1024,28 +1026,28 @@ const std::string& GetOpcodesJsonString()
           "mode" : "MemAcc_Absolute"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "name" : "TAX",
           "opcode" : "0xAA",
           "description" : "Transfer Accumulator to X",
           "bytes" : "1"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "description" : "Transfer Accumulator to Y",
           "bytes" : "1",
           "name" : "TAY",
           "opcode" : "0xA8"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "bytes" : "1",
           "description" : "Transfer Stack Pointer to X",
           "name" : "TSX",
           "opcode" : "0xBA"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "bytes" : "1",
           "description" : "Transfer X to Accumulator",
           "opcode" : "0x8A",
@@ -1056,18 +1058,18 @@ const std::string& GetOpcodesJsonString()
           "bytes" : "1",
           "name" : "TXS",
           "opcode" : "0x9A",
-          "mode" : "Implied"
+          "mode" : "MemAcc_Implied"
        },
        {
-          "mode" : "Implied",
+          "mode" : "MemAcc_Implied",
           "description" : "Transfer Y to Accumulator",
           "bytes" : "1",
           "name" : "TYA",
           "opcode" : "0x98"
        }
     ]
-
-    )";
+}
+)";
 
     return s_opcopdesString;
 }
