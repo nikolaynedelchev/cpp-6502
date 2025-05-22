@@ -44,11 +44,12 @@ static std::string s_end = R"(
 static std::string s_instrDecl = "    Routine Instr_[[NAME]](uint16_t memAcc);\n";
 
 static std::string s_instrImpl = R"(
-Routine Cpu6502::Impl::Instr_[[NAME]](uint16_t memAcc)
+// [[NAME]]: [[DESC]]
+Routine Cpu6502::Impl::Instr_[[NAME]]()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "[[NAME]]")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
@@ -88,7 +89,7 @@ int Main(int /*argc*/, char* /*argv*/[])
     }
 
     std::vector<Json> allcodesJson = Json::parse( GetOpcodesJsonString() ).at("opcodes");
-    std::set< std::string > uniqueInstr;
+    std::set< std::pair<std::string, std::string> > uniqueInstr;
 
     for (const Json& j : allcodesJson)
     {
@@ -108,7 +109,7 @@ int Main(int /*argc*/, char* /*argv*/[])
         ReplaceAll(inst, "[[LENGTH]]", sizeStr);
         ReplaceAll(inst, "[[INSTRUCTION]]", "&Cpu6502::Impl::Instr_" + name);
 
-        uniqueInstr.insert(name); // sort by opcode
+        uniqueInstr.insert({name, desc}); // sort by opcode
     }
 
     for(size_t i = 0; i < 256; i++)
@@ -151,14 +152,18 @@ int Main(int /*argc*/, char* /*argv*/[])
     std::string declarations;
     std::string implementations;
 
-    for(const auto& name : uniqueInstr)
+    for(const auto& p : uniqueInstr)
     {
+        const auto& name = p.first;
+        const auto& desc = p.second;
+
         auto decl = s_instrDecl;
         ReplaceAll(decl, "[[NAME]]", name);
         declarations += decl;
 
         auto impl = s_instrImpl;
         ReplaceAll(impl, "[[NAME]]", name);
+        ReplaceAll(impl, "[[DESC]]", desc);
         implementations += impl;
     }
 
