@@ -119,28 +119,44 @@ Routine Cpu6502::Impl::StartNewInstruction()
     WaitClock();
 
     // TODO: decode opcode mem access mode
-    uint16_t memAcc = 1; // TODO: implement it
+    state.addressMode = 1;
 
     // TODO: decode opcode instruction handler
-    Execute( Instr_ADC(memAcc) );
+    Execute( Instr_ADC() );
 
     co_return;
 }
 
-Routine Cpu6502::Impl::ReadAddress(uint16_t memAcc)
+Routine Cpu6502::Impl::ReadAddress()
 {
-    if (memAcc == Meta::MemAcc_Immediate)
+    //  Name          Bytes     Routine Cycles  Total Cycles
+    //-------------------------------------------------------
+    // Immediate   .... 0 ......... 0 ............. 1
+    // Accumulator .... 0 ......... 0 ............. 1
+    // ZeroPage    .... 1 ......... 1 ............. 2
+    // ZeroPage_X  .... 1 ......... 2 ............. 3
+    // ZeroPage_Y  .... 1 ......... 2 ............. 3
+    // Relative    .... 1 ......... 1 TODO ........ 2 TODO
+    // Absolute    .... 2 ......... 2 ............. 3
+    // Absolute_X  .... 2 ......... 2 ............. 3
+    // Absolute_Y  .... 2 ......... 2 ............. 3
+    // Indirect    .... 2 ......... 4 TODO ........ 5 TODO
+    // Indexed_X   .... 1 ......... 4 ............. 5
+    // Indexed_Y   .... 1 ......... 3 TODO ........ 4 TODO
+
+    if (state.addressMode == Meta::MemAcc_Immediate ||
+        state.addressMode == Meta::MemAcc_Accumulator)
     {
         co_return;
     }
-    if (memAcc & Meta::MemAcc_Need_1_OrMore_Operand)
+    if (state.addressMode & Meta::MemAcc_Need_1_OrMore_Operand)
     {
         // Cycle 1
         state.operand[0] = memory_->Read( registers.PC );
         registers.PC++;
         WaitClock();
     }
-    if (memAcc & Meta::MemAcc_Need_2_Operand)
+    if (state.addressMode & Meta::MemAcc_Need_2_Operand)
     {
         // Cycle 2
         state.operand[1] = memory_->Read( registers.PC );
@@ -148,7 +164,7 @@ Routine Cpu6502::Impl::ReadAddress(uint16_t memAcc)
         WaitClock();
     }
 
-    switch (memAcc)
+    switch (state.addressMode)
     {
     case Meta::MemAcc_ZeroPage:
     {
@@ -173,21 +189,18 @@ Routine Cpu6502::Impl::ReadAddress(uint16_t memAcc)
     case Meta::MemAcc_Absolute:
     {
         state.address = Bitwise::BytesToWord(state.operand);
-        WaitClock();
     }break;
     case Meta::MemAcc_Absolute_X:
     {
         Word a = Bitwise::BytesToWord(state.operand);
         state.address = a + registers.X;
         state.nextPage = Bitwise::ClrLoByte(a) != Bitwise::ClrLoByte(state.address);
-        WaitClock();
     }break;
     case Meta::MemAcc_Absolute_Y:
     {
         Word a = Bitwise::BytesToWord(state.operand);
         state.address = a + registers.Y;
         state.nextPage = Bitwise::ClrLoByte(a) != Bitwise::ClrLoByte(state.address);
-        WaitClock();
     }break;
     case Meta::MemAcc_Indirect:
     {
@@ -239,13 +252,19 @@ Routine Cpu6502::Impl::ReadAddress(uint16_t memAcc)
     co_return;
 }
 
-Routine Cpu6502::Impl::ReadData(uint16_t memAcc)
+Routine Cpu6502::Impl::ReadData()
 {
-    if (memAcc == Meta::MemAcc_Immediate)
+    if (state.addressMode == Meta::MemAcc_Immediate)
     {
         state.operand[0] = memory_->Read( registers.PC );
         registers.PC++;
         state.data = state.operand[0];
+    }
+    else if (state.addressMode == Meta::MemAcc_Accumulator)
+    {
+        state.data = registers.A;
+        // no extra cycle
+        co_return;
     }
     else
     {
@@ -258,14 +277,45 @@ Routine Cpu6502::Impl::ReadData(uint16_t memAcc)
     co_return;
 }
 
+Routine Cpu6502::Impl::WriteData()
+{
+    if (state.addressMode == Meta::MemAcc_Immediate)
+    {
+        Error("Cpu6502::Impl", "Unexpected write")
+                .Msg("CPU: {}", ToString())
+                .Throw();
+    }
+    else if (state.addressMode == Meta::MemAcc_Accumulator)
+    {
+        registers.A = state.data;
+        // no extra cycle
+        co_return;
+    }
+    else
+    {
+        memory_->Write( state.address, state.data );
+    }
+
+    // Cycle 1
+    WaitClock();
+
+    if (state.addressMode == Meta::MemAcc_Absolute_X)
+    {
+        // Cycle 2
+        WaitClock();
+    }
+
+    co_return;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Routine Cpu6502::Impl::Instr_ADC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_ADC()
 {
-    Execute( ReadAddress(memAcc) );
-    Execute( ReadData(memAcc) );
+    Execute( ReadAddress() );
+    Execute( ReadData() );
 
     if (state.nextPage)
     {
@@ -273,615 +323,639 @@ Routine Cpu6502::Impl::Instr_ADC(uint16_t memAcc)
         WaitClock();
     }
 
-    Word sum = registers.A + state.data + FLAG_Carry();
+    state.helper16 = registers.A + state.data + FLAG_Carry();
+    state.helper8 = Byte(state.helper16);
 
-    FLAG_SET_Carry( FLAGVALUE_ADD_C(registers.A, state.data, sum) );
-    FLAG_SET_Zero( FLAGVALUE_ADD_Z(registers.A, state.data, sum) );
-    FLAG_SET_Overflow( FLAGVALUE_ADD_V(registers.A, state.data, sum) );
-    FLAG_SET_Negative( FLAGVALUE_ADD_N(registers.A, state.data, sum) );
+    FLAG_SET_Carry( state.helper16 > 255 ? 1 : 0 );
+    FLAG_SET_Zero( state.helper8 == 0 ? 1 : 0 );
+
+    FLAG_SET_Overflow(
+                (Bitwise::Sign(registers.A) == Bitwise::Sign(state.data)) &&
+                (Bitwise::Sign(registers.A) != Bitwise::Sign(state.helper8))
+                ? 1 : 0);
+
+    FLAG_SET_Negative( Bitwise::Sign(state.helper8) );
+
+    registers.A = state.helper8;
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_AND(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_AND()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "AND")
-        .Msg("MemMode: {}", memAcc)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+    Execute( ReadData() );
+
+    if (state.nextPage)
+    {
+        // Cycle 1
+        WaitClock();
+    }
+
+    registers.A &= state.data;
+
+    FLAG_SET_Zero( registers.A == 0 ? 1 : 0 );
+    FLAG_SET_Negative( Bitwise::Sign(registers.A) );
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_ASL(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_ASL()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "ASL")
-        .Msg("MemMode: {}", memAcc)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+    Execute( ReadData() );
+
+    FLAG_SET_Carry( Bitwise::Bit(state.data, 7) );
+
+    state.data <<= 1;
+
+    FLAG_SET_Zero( state.data == 0 ? 1 : 0 );
+    FLAG_SET_Negative( Bitwise::Sign(state.data) );
+
+    WaitClock();
+
+    Execute( WriteData() );
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BCC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BCC()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BCC")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BCS(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BCS()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BCS")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BEQ(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BEQ()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BEQ")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BIT(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BIT()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BIT")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BMI(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BMI()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BMI")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BNE(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BNE()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BNE")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BPL(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BPL()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BPL")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BRK(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BRK()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BRK")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BVC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BVC()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BVC")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_BVS(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_BVS()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "BVS")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_CLC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_CLC()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "CLC")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_CLD(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_CLD()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "CLD")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_CLI(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_CLI()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "CLI")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_CLV(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_CLV()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "CLV")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_CMP(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_CMP()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "CMP")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_CPX(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_CPX()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "CPX")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_CPY(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_CPY()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "CPY")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_DEC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_DEC()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "DEC")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_DEX(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_DEX()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "DEX")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_DEY(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_DEY()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "DEY")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_EOR(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_EOR()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "EOR")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_INC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_INC()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "INC")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_INX(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_INX()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "INX")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_INY(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_INY()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "INY")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_JMP(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_JMP()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "JMP")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_JSR(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_JSR()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "JSR")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_LDA(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_LDA()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "LDA")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_LDX(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_LDX()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "LDX")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_LDY(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_LDY()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "LDY")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_LSR(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_LSR()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "LSR")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_NOP(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_NOP()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "NOP")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_ORA(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_ORA()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "ORA")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_PHA(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_PHA()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "PHA")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_PHP(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_PHP()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "PHP")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_PLA(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_PLA()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "PLA")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_PLP(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_PLP()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "PLP")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_ROL(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_ROL()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "ROL")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_ROR(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_ROR()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "ROR")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_RTI(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_RTI()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "RTI")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_RTS(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_RTS()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "RTS")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_SBC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_SBC()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "SBC")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_SEC(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_SEC()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "SEC")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_SED(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_SED()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "SED")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_SEI(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_SEI()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "SEI")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_STA(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_STA()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "STA")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_STX(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_STX()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "STX")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_STY(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_STY()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "STY")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_TAX(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_TAX()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "TAX")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_TAY(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_TAY()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "TAY")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_TSX(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_TSX()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "TSX")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_TXA(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_TXA()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "TXA")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_TXS(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_TXS()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "TXS")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 
     co_return;
 }
 
-Routine Cpu6502::Impl::Instr_TYA(uint16_t memAcc)
+Routine Cpu6502::Impl::Instr_TYA()
 {
     Error("Cpu6502::Impl", "Not implemented")
         .Msg("Instr: {}", "TYA")
-        .Msg("MemMode: {}", memAcc)
+        .Msg("MemMode: {}", state.addressMode)
         .Msg("CPU: {}", ToString())
         .Throw();
 

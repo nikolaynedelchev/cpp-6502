@@ -2,8 +2,8 @@
 #include "cpu6502.h"
 #include <common/routine.h>
 
-#define WaitClock() co_await Routine::Suspend{}
-#define WaitRoutine(r) while(r.Resume()){co_await Routine::Suspend{};}
+#define WaitClock() co_yield Routine::Empty{}
+#define WaitRoutine(r) while(r.Resume()){co_yield Routine::Empty{};}
 #define Execute(func) {auto r = func; WaitRoutine(r);}
 
 namespace cpp6502
@@ -13,14 +13,13 @@ struct Cpu6502::Impl
 {
     struct Meta;
     struct Instruction;
-    using InstructionRoutine = Routine (Cpu6502::Impl::*)(uint16_t);
+    using InstructionRoutine = Routine (Cpu6502::Impl::*)();
 
 
     Impl(IMemory* memory);
 
     void Reset();
     void Clock();
-
 
     struct
     {
@@ -35,79 +34,84 @@ struct Cpu6502::Impl
     struct
     {
         Byte opcode = 0;
+
         Byte operand[2] = {0, 0};
         Byte indirect[2] = {0, 0};
         bool nextPage = false;
 
-        bool isAccumulatorMode = false;
         Word address = 0;
-        Byte data = 0;
-    } state;
+        uint16_t addressMode = 0;
 
+        Byte data = 0;
+
+        Byte helper8;
+        Byte helper16;
+    } state;
 
     std::string ToString() const noexcept;
 
     Routine ResetInstruction();
     Routine StartNewInstruction();
-    Routine ReadAddress(uint16_t memAcc);
-    Routine ReadData(uint16_t memAcc);
+    Routine ReadAddress();
+    Routine ReadData();
+    Routine WriteData();
 
-    Routine Instr_ADC(uint16_t memAcc);
-    Routine Instr_AND(uint16_t memAcc);
-    Routine Instr_ASL(uint16_t memAcc);
-    Routine Instr_BCC(uint16_t memAcc);
-    Routine Instr_BCS(uint16_t memAcc);
-    Routine Instr_BEQ(uint16_t memAcc);
-    Routine Instr_BIT(uint16_t memAcc);
-    Routine Instr_BMI(uint16_t memAcc);
-    Routine Instr_BNE(uint16_t memAcc);
-    Routine Instr_BPL(uint16_t memAcc);
-    Routine Instr_BRK(uint16_t memAcc);
-    Routine Instr_BVC(uint16_t memAcc);
-    Routine Instr_BVS(uint16_t memAcc);
-    Routine Instr_CLC(uint16_t memAcc);
-    Routine Instr_CLD(uint16_t memAcc);
-    Routine Instr_CLI(uint16_t memAcc);
-    Routine Instr_CLV(uint16_t memAcc);
-    Routine Instr_CMP(uint16_t memAcc);
-    Routine Instr_CPX(uint16_t memAcc);
-    Routine Instr_CPY(uint16_t memAcc);
-    Routine Instr_DEC(uint16_t memAcc);
-    Routine Instr_DEX(uint16_t memAcc);
-    Routine Instr_DEY(uint16_t memAcc);
-    Routine Instr_EOR(uint16_t memAcc);
-    Routine Instr_INC(uint16_t memAcc);
-    Routine Instr_INX(uint16_t memAcc);
-    Routine Instr_INY(uint16_t memAcc);
-    Routine Instr_JMP(uint16_t memAcc);
-    Routine Instr_JSR(uint16_t memAcc);
-    Routine Instr_LDA(uint16_t memAcc);
-    Routine Instr_LDX(uint16_t memAcc);
-    Routine Instr_LDY(uint16_t memAcc);
-    Routine Instr_LSR(uint16_t memAcc);
-    Routine Instr_NOP(uint16_t memAcc);
-    Routine Instr_ORA(uint16_t memAcc);
-    Routine Instr_PHA(uint16_t memAcc);
-    Routine Instr_PHP(uint16_t memAcc);
-    Routine Instr_PLA(uint16_t memAcc);
-    Routine Instr_PLP(uint16_t memAcc);
-    Routine Instr_ROL(uint16_t memAcc);
-    Routine Instr_ROR(uint16_t memAcc);
-    Routine Instr_RTI(uint16_t memAcc);
-    Routine Instr_RTS(uint16_t memAcc);
-    Routine Instr_SBC(uint16_t memAcc);
-    Routine Instr_SEC(uint16_t memAcc);
-    Routine Instr_SED(uint16_t memAcc);
-    Routine Instr_SEI(uint16_t memAcc);
-    Routine Instr_STA(uint16_t memAcc);
-    Routine Instr_STX(uint16_t memAcc);
-    Routine Instr_STY(uint16_t memAcc);
-    Routine Instr_TAX(uint16_t memAcc);
-    Routine Instr_TAY(uint16_t memAcc);
-    Routine Instr_TSX(uint16_t memAcc);
-    Routine Instr_TXA(uint16_t memAcc);
-    Routine Instr_TXS(uint16_t memAcc);
-    Routine Instr_TYA(uint16_t memAcc);
+    Routine Instr_ADC();
+    Routine Instr_AND();
+    Routine Instr_ASL();
+    Routine Instr_BCC();
+    Routine Instr_BCS();
+    Routine Instr_BEQ();
+    Routine Instr_BIT();
+    Routine Instr_BMI();
+    Routine Instr_BNE();
+    Routine Instr_BPL();
+    Routine Instr_BRK();
+    Routine Instr_BVC();
+    Routine Instr_BVS();
+    Routine Instr_CLC();
+    Routine Instr_CLD();
+    Routine Instr_CLI();
+    Routine Instr_CLV();
+    Routine Instr_CMP();
+    Routine Instr_CPX();
+    Routine Instr_CPY();
+    Routine Instr_DEC();
+    Routine Instr_DEX();
+    Routine Instr_DEY();
+    Routine Instr_EOR();
+    Routine Instr_INC();
+    Routine Instr_INX();
+    Routine Instr_INY();
+    Routine Instr_JMP();
+    Routine Instr_JSR();
+    Routine Instr_LDA();
+    Routine Instr_LDX();
+    Routine Instr_LDY();
+    Routine Instr_LSR();
+    Routine Instr_NOP();
+    Routine Instr_ORA();
+    Routine Instr_PHA();
+    Routine Instr_PHP();
+    Routine Instr_PLA();
+    Routine Instr_PLP();
+    Routine Instr_ROL();
+    Routine Instr_ROR();
+    Routine Instr_RTI();
+    Routine Instr_RTS();
+    Routine Instr_SBC();
+    Routine Instr_SEC();
+    Routine Instr_SED();
+    Routine Instr_SEI();
+    Routine Instr_STA();
+    Routine Instr_STX();
+    Routine Instr_STY();
+    Routine Instr_TAX();
+    Routine Instr_TAY();
+    Routine Instr_TSX();
+    Routine Instr_TXA();
+    Routine Instr_TXS();
+    Routine Instr_TYA();
 
     Routine activeInstruction_;
     IMemory* memory_;
