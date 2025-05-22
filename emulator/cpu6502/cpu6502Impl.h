@@ -5,20 +5,22 @@
 #define WaitClock() co_await Routine::Suspend{}
 #define WaitRoutine(r) while(r.Resume()){co_await Routine::Suspend{};}
 #define Execute(func) {auto r = func; WaitRoutine(r);}
+
 namespace cpp6502
 {
 
-class Cpu6502::Impl
+struct Cpu6502::Impl
 {
-public:
+    struct Meta;
+    struct Instruction;
+    using InstructionRoutine = Routine (Cpu6502::Impl::*)(uint16_t);
+
+
     Impl(IMemory* memory);
 
-    // IDevice interface
-public:
-
     void Reset();
-
     void Clock();
+
 
     struct
     {
@@ -30,7 +32,6 @@ public:
         Byte S = 0;
     } registers;
 
-
     struct
     {
         Byte opcode = 0;
@@ -41,8 +42,34 @@ public:
         bool isAccumulatorMode = false;
         Word address = 0;
         Byte data = 0;
-    }state;
+    } state;
 
+
+    std::string ToString() const noexcept;
+
+    Routine ResetInstruction();
+    Routine StartNewInstruction();
+    Routine ReadAddress(uint16_t memAcc);
+    Routine ReadData(uint16_t memAcc);
+
+    Routine Instr_ADC(uint16_t memAcc);
+
+    Routine activeInstruction_;
+    IMemory* memory_;
+};
+
+struct Cpu6502::Impl::Instruction
+{
+    Byte opcode = 0;
+    std::string name;
+    uint16_t memoryMode;
+    std::string description;
+    Byte size;
+    InstructionRoutine instruction;
+};
+
+struct Cpu6502::Impl::Meta
+{
     static constexpr uint16_t FlagPos_Carry     = 0;
     static constexpr uint16_t FlagPos_Zero      = 1;
     static constexpr uint16_t FlagPos_Interrupt = 2;
@@ -59,6 +86,7 @@ public:
     static constexpr uint16_t FlagMask_Overflow  = (1 << FlagPos_Overflow);
     static constexpr uint16_t FlagMask_Negative  = (1 << FlagPos_Negative);
 
+    static constexpr uint16_t MemAcc_Implied        = ( 0 << 0  );
     static constexpr uint16_t MemAcc_Immediate      = ( 1 << 0  );
     static constexpr uint16_t MemAcc_Accumulator    = ( 1 << 1  );
     static constexpr uint16_t MemAcc_ZeroPage       = ( 1 << 2  );
@@ -72,6 +100,8 @@ public:
     static constexpr uint16_t MemAcc_Indexed_X      = ( 1 << 10 );
     static constexpr uint16_t MemAcc_Indexed_Y      = ( 1 << 11 );
     static constexpr uint16_t MemAcc_All            = ( 1 << 12 ) - 1;
+
+    static constexpr uint16_t MemAcc_INVALID        = ( 0xffff  );
 
     static constexpr uint16_t MemAcc_All_Absolute = MemAcc_Absolute + MemAcc_Absolute_X + MemAcc_Absolute_Y;
     static constexpr uint16_t MemAcc_All_ZeroPage = MemAcc_ZeroPage + MemAcc_ZeroPage_X + MemAcc_ZeroPage_Y;
@@ -87,15 +117,9 @@ public:
 
     static constexpr uint16_t MemAcc_Need_1_OrMore_Operand = MemAcc_Need_1_Operand + MemAcc_Need_2_Operand;
 
-    Routine ResetInstruction();
-    Routine StartNewInstruction();
-    Routine ReadAddress(uint16_t memAcc);
-    Routine ReadData(uint16_t memAcc);
-
-    Routine Op_ADC(uint16_t memAcc);
-
-    Routine activeInstruction_;
-    IMemory* memory_;
+    using InstructionsLookup = Instruction[256];
+    static const InstructionsLookup& Instructions();
 };
+
 
 }
