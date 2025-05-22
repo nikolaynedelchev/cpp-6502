@@ -4,24 +4,24 @@
 
 static const char* s_yieldStack[8];
 
-#define WaitClock(msg) co_yield msg
+#define WaitClock() co_yield Routine::Empty{}
 #define WaitRoutine(r) while(r.Resume()){co_await Routine::Suspend{};}
 namespace cpp6502::tests
 {
 
 Routine CoroutineZ() {
     fmt::println("CoroutineZ step 1");
-    WaitClock("Co-Z-1");
+    WaitClock();
     fmt::println("CoroutineZ step 2");
-    WaitClock("Co-Z-2");
+    WaitClock();
     fmt::println("CoroutineZ step 3");
 }
 
 Routine CoroutineA() {
     fmt::println("CoroutineA step 1");
-    WaitClock("Co-A-1");
+    WaitClock();
     fmt::println("CoroutineA step 2");
-    WaitClock("Co-A-2");
+    WaitClock();
     fmt::println("CoroutineA step 3 (calling Z)");
     auto z = CoroutineZ();
     WaitRoutine(z);
@@ -32,12 +32,12 @@ Routine CoroutineB() {
     fmt::println("CoroutineB step 0, yield test");
     co_yield Routine::Empty();
     fmt::println("CoroutineB step 1");
-    WaitClock("Co-B-1");
+    WaitClock();
     fmt::println("CoroutineB step 2 (calling A)");
     auto r = CoroutineA();
     WaitRoutine(r);
     fmt::println("CoroutineB step 3 (exit A)");
-    WaitClock("Co-B-3");
+    WaitClock();
     fmt::println("CoroutineB step 3");
 }
 
