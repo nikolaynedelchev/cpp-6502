@@ -144,21 +144,40 @@ Routine Cpu6502::Impl::ReadAddress()
     // Indexed_X   .... 1 ......... 4 ............. 5
     // Indexed_Y   .... 1 ......... 3 TODO ........ 4 TODO
 
+    // 0 operands
     if (state.addressMode == Meta::MemAcc_Immediate ||
         state.addressMode == Meta::MemAcc_Accumulator)
     {
         co_return;
     }
-    if (state.addressMode & Meta::MemAcc_Need_1_OrMore_Operand)
+
+    // 1 operand
+    if (state.addressMode & (
+            Meta::MemAcc_ZeroPage   |
+            Meta::MemAcc_ZeroPage_X |
+            Meta::MemAcc_ZeroPage_Y |
+            Meta::MemAcc_Relative   |
+            Meta::MemAcc_Indexed_X  |
+            Meta::MemAcc_Indexed_Y)
+        )
     {
         // Cycle 1
+        // read first operand
         state.operand[0] = memory_->Read( registers.PC );
         registers.PC++;
         WaitClock();
     }
-    if (state.addressMode & Meta::MemAcc_Need_2_Operand)
+
+    // 2 operand
+    if (state.addressMode & (
+            Meta::MemAcc_Absolute   |
+            Meta::MemAcc_Absolute_X |
+            Meta::MemAcc_Absolute_Y |
+            Meta::MemAcc_Indirect)
+        )
     {
         // Cycle 2
+        // read second operand
         state.operand[1] = memory_->Read( registers.PC );
         registers.PC++;
         WaitClock();
@@ -315,13 +334,14 @@ Routine Cpu6502::Impl::WriteData()
 Routine Cpu6502::Impl::Instr_ADC()
 {
     Execute( ReadAddress() );
-    Execute( ReadData() );
 
     if (state.nextPage)
     {
         // Cycle 1
         WaitClock();
     }
+
+    Execute( ReadData() );
 
     state.helper16 = registers.A + state.data + FLAG_Carry();
     state.helper8 = Byte(state.helper16);
@@ -344,13 +364,14 @@ Routine Cpu6502::Impl::Instr_ADC()
 Routine Cpu6502::Impl::Instr_AND()
 {
     Execute( ReadAddress() );
-    Execute( ReadData() );
 
     if (state.nextPage)
     {
         // Cycle 1
         WaitClock();
     }
+
+    Execute( ReadData() );
 
     registers.A &= state.data;
 
@@ -381,11 +402,20 @@ Routine Cpu6502::Impl::Instr_ASL()
 
 Routine Cpu6502::Impl::Instr_BCC()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "BCC")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+
+    if (FLAG_Carry())
+    {
+        co_return;
+    }
+
+    if (state.nextPage)
+    {
+        WaitClock();
+    }
+
+    registers.PC = state.address;
+    WaitClock();
 
     co_return;
 }

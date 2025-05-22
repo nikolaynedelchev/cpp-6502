@@ -162,20 +162,6 @@ struct Cpu6502::Impl::Meta
 
     static constexpr uint16_t MemAcc_INVALID        = ( 0xffff  );
 
-    static constexpr uint16_t MemAcc_All_Absolute = MemAcc_Absolute + MemAcc_Absolute_X + MemAcc_Absolute_Y;
-    static constexpr uint16_t MemAcc_All_ZeroPage = MemAcc_ZeroPage + MemAcc_ZeroPage_X + MemAcc_ZeroPage_Y;
-    static constexpr uint16_t MemAcc_All_Indexed = MemAcc_Indexed_X + MemAcc_Indexed_Y;
-
-    static constexpr uint16_t MemAcc_Need_0_Operand = MemAcc_Immediate + MemAcc_Accumulator;
-
-    static constexpr uint16_t MemAcc_Need_1_Operand = MemAcc_All_ZeroPage +
-                                                      MemAcc_Relative +
-                                                      MemAcc_All_Indexed;
-
-    static constexpr uint16_t MemAcc_Need_2_Operand = MemAcc_All_Absolute + MemAcc_Indirect;
-
-    static constexpr uint16_t MemAcc_Need_1_OrMore_Operand = MemAcc_Need_1_Operand + MemAcc_Need_2_Operand;
-
     using InstructionsLookup = Instruction[256];
     static const InstructionsLookup& Instructions();
 };
