@@ -21,7 +21,6 @@ struct Routine
     {
         const char* current_yield = nullptr;
 
-        promise_type();
         Routine get_return_object() noexcept;
         std::suspend_always initial_suspend() noexcept;
         std::suspend_always final_suspend() noexcept;
