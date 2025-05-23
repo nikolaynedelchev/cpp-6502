@@ -3,11 +3,6 @@
 #include <common/routine.h>
 #include <common/bitwise.h>
 
-#define WaitClock() co_yield Routine::Empty{}
-#define WaitRoutine(r) while(r.Resume()){co_yield Routine::Empty{};}
-#define Execute(func) {auto r = func; WaitRoutine(r);}
-#define CallMember(member) ((*this).*(member))()
-
 namespace cpp6502
 {
 
@@ -16,7 +11,6 @@ struct Cpu6502::Impl
     struct Meta;
     struct Instruction;
     using InstructionRoutine = Routine (Cpu6502::Impl::*)();
-
 
     Impl(IMemory* memory);
 
@@ -27,11 +21,11 @@ struct Cpu6502::Impl
     struct
     {
         Address PC = 0;
-        Byte SP = 0xFF;
+        Byte SP = 0;
         Byte A = 0;
         Byte X = 0;
         Byte Y = 0;
-        Byte S = 1 << 5; // UnusedFlag should always read as 1
+        Byte S = (1 << 5) | (1 << 2); // UnusedFlag should always read as 1, Set Interrupt flag
 
         inline Byte Carry()         const   noexcept { return Bitwise::Bit8(S, 0 ) ;}
         inline Byte Zero()          const   noexcept { return Bitwise::Bit8(S, 1 ) ;}

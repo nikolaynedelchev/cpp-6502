@@ -7,7 +7,7 @@ namespace cpp6502
 struct Bitwise
 {
 
-    SIC Byte    Bit8        (Byte byte, Byte bit)               noexcept {return ((byte >> 1) & 1);}
+    SIC Byte    Bit8        (Byte byte, Byte bit)               noexcept {return ((byte >> bit) & 1);}
     SIC Byte    TestBit8    (Byte byte, Byte bit)               noexcept {return (byte & (1 << bit));}
     SIC void    SetBit8     (Byte&byte, Byte bit, Byte value)   noexcept {byte = (value ? (byte | (1 << bit)) : (byte & ~(1 << bit)));}
     SIC Byte    Sign8       (Byte byte)                         noexcept {return Bit8(byte, 7);}

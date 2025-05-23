@@ -12,7 +12,10 @@ private:
     Cpu6502();
 
 public:
-    std::shared_ptr<Cpu6502> CreateInstance(IMemory* memory);
+    static std::shared_ptr<Cpu6502> CreateInstance(IMemory* memory);
+    void PowerOn();
+    void Reset();
+    std::string Dump() const noexcept;
 
     // IDevice interface
     void Clock() final;

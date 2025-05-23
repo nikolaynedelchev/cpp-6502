@@ -30,6 +30,35 @@ const std::vector<Byte> &Ram::Memory() const
     return memory_;
 }
 
+Address Ram::Start() const noexcept
+{
+    return start_;
+}
+
+Address Ram::End() const noexcept
+{
+    return end_;
+}
+
+Byte& Ram::operator[](Address address)
+{
+    return memory_[address - start_];
+}
+
+const Byte& Ram::operator[](Address address) const
+{
+    return memory_[address - start_];
+}
+
+void Ram::Overrite(Address address, const std::vector<Byte> &mem)
+{
+    for(auto b : mem)
+    {
+        memory_[address - start_] = b;
+        address++;
+    }
+}
+
 Byte Ram::Read(Address address)
 {
     if (address < start_ || address > end_)

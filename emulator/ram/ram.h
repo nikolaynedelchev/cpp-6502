@@ -5,13 +5,21 @@
 namespace cpp6502
 {
 
-class Ram : IMemory
+class Ram : public IMemory
 {
 public:
     Ram(Address start, Word end);
 
     std::vector<Byte>& Memory();
     const std::vector<Byte>& Memory() const;
+
+    Address Start() const noexcept;
+    Address End() const noexcept;
+
+    Byte& operator[](Address address);
+    const Byte& operator[](Address address) const;
+
+    void Overrite(Address, const std::vector<Byte>& mem);
 
     // IMemory interface
     Byte Read(Address);
