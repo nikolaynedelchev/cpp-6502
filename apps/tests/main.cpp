@@ -30,7 +30,7 @@ Routine CoroutineA() {
 
 Routine CoroutineB() {
     fmt::println("CoroutineB step 0, yield test");
-    co_yield Routine::Empty();
+    co_yield Routine::Empty{};
     fmt::println("CoroutineB step 1");
     WaitClock();
     fmt::println("CoroutineB step 2 (calling A)");
@@ -46,7 +46,7 @@ void CoroutineTestB()
     fmt::println("Creating coroutine B");
     Routine b = CoroutineB();
     b.Resume();
-    fmt::println("Yielded value: {}", b.LastYielded());
+    fmt::println("Yielded value: {}", (b.LastYielded() != nullptr));
     fmt::println("Executing coroutine B");
 
     fmt::println("CLOCK...");
@@ -85,6 +85,7 @@ void CoroutineTest()
     fmt::println("While done");
 
 }
+
 
 int Main(int /*argc*/, char* /*argv*/[])
 {
