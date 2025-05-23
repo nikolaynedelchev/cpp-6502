@@ -94,5 +94,15 @@ std::string Rom::ToString() const
                        start_, end_, memory_.size());
 }
 
+Byte Rom::Unsafe_Read(Address address)
+{
+    return memory_[address - start_];
+}
+
+void Rom::Unsafe_Write(Address address, Byte data)
+{
+    memory_[address - start_] = data;
+}
+
 }
 

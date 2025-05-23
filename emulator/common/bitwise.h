@@ -14,7 +14,7 @@ struct Bitwise
     SIC Word    BytesToWord (auto bytes)                        noexcept {return (Word(bytes[0]) | (Word(bytes[1]) << 8));}
     SIC Byte    HiByte16    (Word word)                         noexcept {return Byte(word >> 8);}
     SIC Byte    LoByte16    (Word word)                         noexcept {return Byte(word);}
-    SIC void    SetHiByte16 (Word&word, Byte byte)              noexcept {word &= Word(0xff); word |= (Word(byte) << 8);}
+    SIC void    SetHiByte16 (Word&word, Byte byte)              noexcept {word &= Word(0xff);word |= (Word(byte) << 8);}
     SIC void    SetLoByte16 (Word&word, Byte byte)              noexcept {word &= (Word(0xff) << 8); word |= Word(byte);}
     SIC Word    ClrHiByte16 (Word word)                         noexcept {return (word & Word(0xff));}
     SIC Word    ClrLoByte16 (Word word)                         noexcept {return (word & (Word(0xff) << 8));}

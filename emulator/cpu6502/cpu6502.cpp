@@ -33,6 +33,21 @@ void Cpu6502::Clock()
     impl_->Clock();
 }
 
+void Cpu6502::ForceState(const State& initial) noexcept
+{
+    impl_->ForceState(std::move(initial));
+}
+
+bool Cpu6502::Compate(const State& state) const noexcept
+{
+    return impl_->Compate(state);
+}
+
+Cpu6502::Lifetime Cpu6502::GetLifetime() const noexcept
+{
+    return impl_->GetLifetime();
+}
+
 
 }
 

@@ -5,6 +5,7 @@
 
 #include <ram/ram.h>
 #include <rom/rom.h>
+#include <common/common.h>
 
 namespace cpp6502::emu
 {
@@ -23,6 +24,14 @@ std::vector<uint8_t> ReadBinaryFile(const std::string& filePath)
     }
 
     return buffer;
+}
+
+std::string ReadFileToString(const std::string& filePath)
+{
+    std::ifstream file(filePath);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
 }
 
 void BootTest()
@@ -78,12 +87,100 @@ void BinImageTest()
     }
 }
 
+// "pc": 35714,
+//     "s": 81,
+//     "a": 203,
+//     "x": 117,
+//     "y": 162,
+//     "p": 106,
+
+std::string ParseSingleTest(const Json& test, Cpu6502::State& initial, Cpu6502::State& final, std::vector<Membus::TestSequence>& testSequence)
+{
+    try
+    {
+        auto parse = [&test](Cpu6502::State& state, const std::string& name)
+        {
+            state.PC = test.at(name).at("pc");
+            state.SP = test.at(name).at("s");
+            state.A = test.at(name).at("a");
+            state.X = test.at(name).at("x");
+            state.Y = test.at(name).at("y");
+            state.S = test.at(name).at("p");
+            for (const auto& j : test.at(name).at("ram"))
+            {
+                state.mem.push_back( {j[0], j[1]} );
+            }
+        };
+
+        parse(initial, "initial");
+        parse(final, "final");
+
+        for (const auto& j : test.at("cycles"))
+        {
+            testSequence.push_back( { .address = j[0], .data = j[1], .isRead = (j[2] == "read")?true:false   } );
+        }
+    }
+    catch(const std::exception& e)
+    {
+        fmt::println("Error in json: {}", test.dump(3));
+        fmt::println("exception: {}", e.what());
+        abort();
+    }
+
+    return test.at("name");
+}
+
+void JsonTestTest()
+{
+    auto tests = Json::parse( ReadFileToString("/home/nikolay/ndn/cpp-6502/tests/SingleStepTests/6502/v1/00.json") );
+
+    for (auto& test : tests)
+    {
+        Cpu6502::State initial;
+        Cpu6502::State final;
+        std::vector<Membus::TestSequence> testSequence;
+        std::string name = ParseSingleTest(test, initial, final, testSequence);
+
+        Ram ram(0x0000, 0xFFFF);
+
+        Membus memBus;
+        memBus.Connect(&ram, ram.Start(), ram.End());
+
+        auto cpu = Cpu6502::CreateInstance(&memBus);
+        cpu->PowerOn();
+
+        cpu->ForceState(initial);
+        memBus.LookForSequence(testSequence);
+
+        while (true)
+        {
+            memBus.Clock();
+            cpu->Clock();
+
+            if (cpu->Compate(final))
+            {
+                fmt::println( "OK: {}", name );
+                break;
+            }
+            if (!memBus.IsSequenceOk())
+            {
+                fmt::println( "Fail: {}", name );
+                fmt::println( "Step: {}", memBus.SequenceStep());
+                fmt::println( "cycles: {}, instructions: {}", cpu->GetLifetime().cycleCounter, cpu->GetLifetime().cycleCounter);
+                fmt::println( "cpu: {}", cpu->Dump());
+                break;
+            }
+        }
+    }
+}
+
 int Main(int /*argc*/, char* /*argv*/[])
 {
     fmt::println("Hello world");
 
     //BootTest();
-    BinImageTest();
+    //BinImageTest();
+    JsonTestTest();
     return 0;
 }
 

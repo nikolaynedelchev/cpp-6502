@@ -23,6 +23,8 @@ public:
     Byte Read(Address);
     void Write(Address, Byte);
     std::string ToString() const;
+    Byte Unsafe_Read(Address) final;
+    void Unsafe_Write(Address, Byte) final;
 
 private:
     Address start_;

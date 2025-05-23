@@ -70,7 +70,6 @@ Byte Ram::Read(Address address)
             .Msg("End: {}", end_)
             .Throw();
     }
-
     return memory_[address - start_];
 }
 
@@ -86,7 +85,6 @@ void Ram::Write(Address address, Byte data)
             .Msg("Data: {}", int(data))
             .Throw();
     }
-
     memory_[address - start_] = data;
 }
 
@@ -94,6 +92,16 @@ std::string Ram::ToString() const
 {
     return fmt::format("[Ram] start: {}, end: {}, buffsize: {}",
                        start_, end_, memory_.size());
+}
+
+Byte Ram::Unsafe_Read(Address address)
+{
+    return memory_[address - start_];
+}
+
+void Ram::Unsafe_Write(Address address, Byte data)
+{
+    memory_[address - start_] = data;
 }
 
 }

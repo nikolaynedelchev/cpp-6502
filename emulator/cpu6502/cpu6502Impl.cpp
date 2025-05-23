@@ -29,12 +29,59 @@ void Cpu6502::Impl::Reset()
 
 void Cpu6502::Impl::Clock()
 {
+    lifetime.cycleCounter++;
     if (activeInstruction_.Done())
     {
         activeInstruction_.Destroy();
         activeInstruction_ = StartNewInstruction();
     }
     activeInstruction_.Resume();
+}
+
+void Cpu6502::Impl::ForceState(const State& initial) noexcept
+{
+    activeInstruction_.Destroy();
+
+    registers.PC =  initial.PC;
+    registers.SP =  initial.SP;
+    registers.A  =  initial.A;
+    registers.X  =  initial.X;
+    registers.Y  =  initial.Y;
+    registers.S  =  initial.S;
+    registers.SetBreak();
+    registers.SetUnusedFlag();
+
+    for(const auto& [address, data] : initial.mem)
+    {
+        memory_->Unsafe_Write(address, data);
+    }
+}
+
+bool Cpu6502::Impl::Compate(const State& state) const noexcept
+{
+    if( registers.PC !=  state.PC ||
+        registers.SP !=  state.SP ||
+        registers.A  !=  state.A  ||
+        registers.X  !=  state.X  ||
+        registers.Y  !=  state.Y  ||
+        registers.S  !=  state.S)
+    {
+        return false;
+    }
+
+    for(const auto& [address, data] : state.mem)
+    {
+        if (data != memory_->Unsafe_Read(address))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+Cpu6502::Lifetime Cpu6502::Impl::GetLifetime() const noexcept
+{
+    return lifetime;
 }
 
 std::string Cpu6502::Impl::ToString() const noexcept
@@ -96,6 +143,7 @@ Routine Cpu6502::Impl::ResetInstruction()
 
 Routine Cpu6502::Impl::StartNewInstruction()
 {
+    lifetime.instructionCounter++;
     state = {};
     state.opcode = memory_->Read( registers.PC );
     registers.PC++;

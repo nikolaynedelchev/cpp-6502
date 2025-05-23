@@ -18,6 +18,10 @@ struct Cpu6502::Impl
     void Reset();
     void Clock();
 
+    void ForceState(const State& initial) noexcept;
+    bool Compate(const State& state) const noexcept;
+    Lifetime GetLifetime() const noexcept;
+
     struct
     {
         Address PC = 0;
@@ -83,6 +87,8 @@ struct Cpu6502::Impl
         // This is fixed in some later chips like the 65SC02
         bool originalIndirectFetch = true;
     }cfg;
+
+    Lifetime lifetime;
 
     std::string ToString() const noexcept;
 

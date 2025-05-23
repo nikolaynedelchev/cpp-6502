@@ -22,18 +22,27 @@ Byte Membus::Read(Address address)
             .Throw();
     }
     isReady_ = false;
-
-    for(auto& slot : slots_)
+    Byte data = Unsafe_Read(address);
+    if (testSequence_.size())
     {
-        if (slot.start <= address && slot.end >= address)
+        if (testSequence_[sequenceIdx_].address != address ||
+            testSequence_[sequenceIdx_].data != data ||
+            testSequence_[sequenceIdx_].isRead == false)
         {
-            lastValildData_ = slot.memory->Read(address);
-            return lastValildData_;
+            isSequenceOk = false;
+            fmt::println("Reading from: {}, data: {}", address, data);
+            fmt::println("is reading: {}, address: {}, data: {}", testSequence_[sequenceIdx_].isRead,
+                         testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].data);
+        }
+
+        sequenceIdx_++;
+        if (sequenceIdx_ >= testSequence_.size())
+        {
+            testSequence_.clear();
+            sequenceIdx_ = 0;
         }
     }
-
-    fmt::println("[membus warning] memory device not found, read failed, address: {}", address);
-    return lastValildData_;
+    return data;
 }
 
 void Membus::Write(Address address, Byte data)
@@ -45,20 +54,26 @@ void Membus::Write(Address address, Byte data)
             .Msg("Address: {}", address)
             .Throw();
     }
-
-    isReady_ = false;
-    lastValildData_ = data;
-
-    for(auto& slot : slots_)
+    if (testSequence_.size())
     {
-        if (slot.start <= address && slot.end >= address)
+        if (testSequence_[sequenceIdx_].address != address ||
+            testSequence_[sequenceIdx_].data != data ||
+            testSequence_[sequenceIdx_].isRead == true)
         {
-            slot.memory->Write(address, data);
-            return;
+            isSequenceOk = false;
+            fmt::println("Writing from: {}, data: {}", address, data);
+            fmt::println("is writing: {}, address: {}, data: {}", !testSequence_[sequenceIdx_].isRead,
+                         testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].data);
+        }
+
+        sequenceIdx_++;
+        if (sequenceIdx_ >= testSequence_.size())
+        {
+            testSequence_.clear();
+            sequenceIdx_ = 0;
         }
     }
-
-    fmt::println("[membus warning] memory device not found, write failed, address: {}", address);
+    Unsafe_Write(address, data);
 }
 
 std::string Membus::ToString() const
@@ -72,6 +87,38 @@ std::string Membus::ToString() const
                            slot.start, slot.end, slot.memory->ToString());
     }
     return str;
+}
+
+Byte Membus::Unsafe_Read(Address address)
+{
+    for(auto& slot : slots_)
+    {
+        if (slot.start <= address && slot.end >= address)
+        {
+            lastValildData_ = slot.memory->Read(address);
+            return lastValildData_;
+        }
+    }
+
+    fmt::println("[membus warning] memory device not found, read failed, address: {}", address);
+    return lastValildData_;
+}
+
+void Membus::Unsafe_Write(Address address, Byte data)
+{
+    isReady_ = false;
+    lastValildData_ = data;
+
+    for(auto& slot : slots_)
+    {
+        if (slot.start <= address && slot.end >= address)
+        {
+            slot.memory->Write(address, data);
+            return;
+        }
+    }
+
+    fmt::println("[membus warning] memory device not found, write failed, address: {}", address);
 }
 
 void Membus::Connect(IMemory *mem, Address startAddress, Address endAddress)
@@ -115,6 +162,24 @@ void Membus::Disconnect(IMemory *mem)
     {
         fmt::println("[membus warning] memory device not found and not removed");
     }
+}
+
+void Membus::LookForSequence(std::vector<TestSequence> testSequence) noexcept
+{
+    testSequence_ = std::move(testSequence);
+    isSequenceOk = true;
+    sequenceIdx_ = 0;
+}
+
+
+bool Membus::IsSequenceOk() const noexcept
+{
+    return isSequenceOk;
+}
+
+bool Membus::SequenceStep() const noexcept
+{
+    return sequenceIdx_;
 }
 
 }
