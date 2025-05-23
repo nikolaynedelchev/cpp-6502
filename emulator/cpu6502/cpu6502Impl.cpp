@@ -1,6 +1,6 @@
 #include "cpu6502Impl.h"
 
-#define WaitRoutine(routine) {auto r = routine; while(r.Resume()){ WaitClock(); }}
+#define WaitRoutine(routine) {auto r = routine; while(r.Resume()){ co_yield WaitClock(); }}
 
 namespace cpp6502
 {
@@ -34,16 +34,13 @@ void Cpu6502::Impl::Clock()
         activeInstruction_.Destroy();
         activeInstruction_ = StartNewInstruction();
     }
-    else
-    {
-        activeInstruction_.Resume();
-    }
+    activeInstruction_.Resume();
 }
 
 std::string Cpu6502::Impl::ToString() const noexcept
 {
     return fmt::format(
-        "PC:{:04X} SP:{:02X} A:{:02X} X:{:02X} Y:{:02X} S:{:02X} Flags[(N:{})(V:{})(U:{})(B:{})(D:{})(I:{})(Z:{})(C:{})]",
+        "PC:{:04X} SP:{:02X} A:{:02X} X:{:02X} Y:{:02X} S:{:02X} Flags[(N:{})(V:{})(U:{})(B:{})(D:{})(I:{})(Z:{})(C:{})], OP:{}/{}",
         registers.PC,
         registers.SP,
         registers.A,
@@ -57,7 +54,9 @@ std::string Cpu6502::Impl::ToString() const noexcept
         registers.Decimal()    ? '1' : '0',
         registers.Interrupt()  ? '1' : '0',
         registers.Zero()       ? '1' : '0',
-        registers.Carry()      ? '1' : '0'
+        registers.Carry()      ? '1' : '0',
+        state.opcode,
+        Meta::Instructions()[state.opcode].name
     );
 }
 
@@ -213,7 +212,7 @@ Routine Cpu6502::Impl::ReadAddress()
     case Meta::MemAcc_Indirect:
     {
         // Cycle 3
-        state.helper16  = Bitwise::BytesToWord(state.operand);
+        state.helper16 = Bitwise::BytesToWord(state.operand);
         state.indirect[0] = memory_->Read( state.helper16  );
         co_yield WaitClock();
 
@@ -584,7 +583,7 @@ Routine Cpu6502::Impl::Instr_BRK()
     co_yield WaitClock();
 
     // Cycle 3
-    memory_->Write( registers.StackAddress(), registers.S | Meta::FlagPos_Break );
+    memory_->Write( registers.StackAddress(), registers.S | Meta::FlagMask_Break );
     co_yield WaitClock();
 
     state.addressMode = Meta::MemAcc_Aux_ResetVec;
@@ -1001,7 +1000,11 @@ Routine Cpu6502::Impl::Instr_PHA()
 Routine Cpu6502::Impl::Instr_PHP()
 {
     // Cycle 1
-    memory_->Write( registers.StackAddress(), registers.S );
+
+    // 0672 : c930            >            cmp #(0      |fao)&m8    ;expected flags + always on bits
+    // 6502_functional_test.lst
+    // Klaus2m5
+    memory_->Write( registers.StackAddress(), registers.S| Meta::FlagMask_Break );
     co_yield WaitClock();
 
     // Cycle 2
@@ -1140,12 +1143,14 @@ Routine Cpu6502::Impl::Instr_RTS()
 
     // Cycle 3
     registers.ApplyPool();
-    Bitwise::SetLoByte16(registers.PC, memory_->Read(registers.StackAddress()) );
+    state.helper8 = memory_->Read(registers.StackAddress());
+    Bitwise::SetLoByte16(registers.PC, state.helper8);
     co_yield WaitClock();
 
     // Cycle 4
     registers.ApplyPool();
-    Bitwise::SetHiByte16(registers.PC, memory_->Read(registers.StackAddress()) );
+    state.helper8 = memory_->Read(registers.StackAddress());
+    Bitwise::SetHiByte16(registers.PC, state.helper8);
     registers.PC++;
     co_yield WaitClock();
 

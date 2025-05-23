@@ -70,7 +70,7 @@ struct Cpu6502::Impl
         Byte data = 0;
 
         Byte helper8;
-        Byte helper16;
+        Word helper16;
     } state;
 
     struct
@@ -183,20 +183,20 @@ struct Cpu6502::Impl::Meta
     static constexpr Byte FlagMask_Overflow  = (1 << FlagPos_Overflow);
     static constexpr Byte FlagMask_Negative  = (1 << FlagPos_Negative);
 
-    static constexpr uint16_t MemAcc_Implied        = ( 0 << 0  );
-    static constexpr uint16_t MemAcc_Immediate      = ( 1 << 0  );
-    static constexpr uint16_t MemAcc_Accumulator    = ( 1 << 1  );
-    static constexpr uint16_t MemAcc_ZeroPage       = ( 1 << 2  );
-    static constexpr uint16_t MemAcc_ZeroPage_X     = ( 1 << 3  );
-    static constexpr uint16_t MemAcc_ZeroPage_Y     = ( 1 << 4  );
-    static constexpr uint16_t MemAcc_Relative       = ( 1 << 5  );
-    static constexpr uint16_t MemAcc_Absolute       = ( 1 << 6  );
-    static constexpr uint16_t MemAcc_Absolute_X     = ( 1 << 7  );
-    static constexpr uint16_t MemAcc_Absolute_Y     = ( 1 << 8  );
-    static constexpr uint16_t MemAcc_Indirect       = ( 1 << 9  );
-    static constexpr uint16_t MemAcc_Indexed_X      = ( 1 << 10 );
-    static constexpr uint16_t MemAcc_Indexed_Y      = ( 1 << 11 );
-    static constexpr uint16_t MemAcc_Aux_ResetVec   = ( 1 << 12 );
+    static constexpr uint16_t MemAcc_Implied        = ( 0 << 0  );  //    0
+    static constexpr uint16_t MemAcc_Immediate      = ( 1 << 0  );  //    1
+    static constexpr uint16_t MemAcc_Accumulator    = ( 1 << 1  );  //    2
+    static constexpr uint16_t MemAcc_ZeroPage       = ( 1 << 2  );  //    4
+    static constexpr uint16_t MemAcc_ZeroPage_X     = ( 1 << 3  );  //    8
+    static constexpr uint16_t MemAcc_ZeroPage_Y     = ( 1 << 4  );  //   16
+    static constexpr uint16_t MemAcc_Relative       = ( 1 << 5  );  //   32
+    static constexpr uint16_t MemAcc_Absolute       = ( 1 << 6  );  //   64
+    static constexpr uint16_t MemAcc_Absolute_X     = ( 1 << 7  );  //  128
+    static constexpr uint16_t MemAcc_Absolute_Y     = ( 1 << 8  );  //  256
+    static constexpr uint16_t MemAcc_Indirect       = ( 1 << 9  );  //  512
+    static constexpr uint16_t MemAcc_Indexed_X      = ( 1 << 10 );  // 1024
+    static constexpr uint16_t MemAcc_Indexed_Y      = ( 1 << 11 );  // 2048
+    static constexpr uint16_t MemAcc_Aux_ResetVec   = ( 1 << 12 );  // 4096
     static constexpr uint16_t MemAcc_All            = ( 1 << 13 ) - 1;
 
     static constexpr uint16_t MemAcc_INVALID        = ( 0xffff  );
