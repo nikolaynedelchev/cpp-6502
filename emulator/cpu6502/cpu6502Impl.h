@@ -33,27 +33,31 @@ struct Cpu6502::Impl
         Byte Y = 0;
         Byte S = 1 << 5; // UnusedFlag should always read as 1
 
-        inline Byte Carry()         const   noexcept { return Bitwise::Bit(S, 0 ) ;}
-        inline Byte Zero()          const   noexcept { return Bitwise::Bit(S, 1 ) ;}
-        inline Byte Interrupt()     const   noexcept { return Bitwise::Bit(S, 2 ) ;}
-        inline Byte Decimal()       const   noexcept { return Bitwise::Bit(S, 3 ) ;}
+        inline Byte Carry()         const   noexcept { return Bitwise::Bit8(S, 0 ) ;}
+        inline Byte Zero()          const   noexcept { return Bitwise::Bit8(S, 1 ) ;}
+        inline Byte Interrupt()     const   noexcept { return Bitwise::Bit8(S, 2 ) ;}
+        inline Byte Decimal()       const   noexcept { return Bitwise::Bit8(S, 3 ) ;}
         inline Byte Break()         const   noexcept { return 0; }          //4
         inline Byte UnusedFlag()    const   noexcept { return 1; }          //5
-        inline Byte Overflow()      const   noexcept { return Bitwise::Bit(S, 6 ) ;}
-        inline Byte Negative()      const   noexcept { return Bitwise::Bit(S, 7 ) ;}
+        inline Byte Overflow()      const   noexcept { return Bitwise::Bit8(S, 6 ) ;}
+        inline Byte Negative()      const   noexcept { return Bitwise::Bit8(S, 7 ) ;}
 
-        inline void SetCarry(Byte f)        noexcept { Bitwise::SetBit(S, 0, f ) ;}
-        inline void SetZero(Byte f)         noexcept { Bitwise::SetBit(S, 1, f ) ;}
-        inline void SetInterrupt(Byte f)    noexcept { Bitwise::SetBit(S, 2, f ) ;}
-        inline void SetDecimal(Byte f)      noexcept { Bitwise::SetBit(S, 3, f ) ;}
-        inline void SetBreak()              noexcept { Bitwise::SetBit(S, 4, 0 ) ;}
-        inline void SetUnusedFlag()         noexcept { Bitwise::SetBit(S, 5, 1 ) ;}
-        inline void SetOverflow(Byte f)     noexcept { Bitwise::SetBit(S, 6, f ) ;}
-        inline void SetNegative(Byte f)     noexcept { Bitwise::SetBit(S, 7, f ) ;}
+        inline void SetCarry(Byte f)        noexcept { Bitwise::SetBit8(S, 0, f ) ;}
+        inline void SetZero(Byte f)         noexcept { Bitwise::SetBit8(S, 1, f ) ;}
+        inline void SetInterrupt(Byte f)    noexcept { Bitwise::SetBit8(S, 2, f ) ;}
+        inline void SetDecimal(Byte f)      noexcept { Bitwise::SetBit8(S, 3, f ) ;}
+        inline void SetBreak()              noexcept { Bitwise::SetBit8(S, 4, 0 ) ;}
+        inline void SetUnusedFlag()         noexcept { Bitwise::SetBit8(S, 5, 1 ) ;}
+        inline void SetOverflow(Byte f)     noexcept { Bitwise::SetBit8(S, 6, f ) ;}
+        inline void SetNegative(Byte f)     noexcept { Bitwise::SetBit8(S, 7, f ) ;}
 
         inline void ApplyPush()             noexcept { SP--; }
         inline void ApplyPool()             noexcept { SP++; }
         inline Word StackAddress()          noexcept { return Word(0x0100) + SP; }
+
+        inline Byte Positive()      const   noexcept { return ! Negative(); }
+        inline Byte Equal()         const   noexcept { return Zero(); }
+
 
     } registers;
 

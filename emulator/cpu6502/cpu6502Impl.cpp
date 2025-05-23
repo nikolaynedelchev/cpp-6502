@@ -88,21 +88,21 @@ Routine Cpu6502::Impl::StartNewInstruction()
 
 Routine Cpu6502::Impl::ReadAddress()
 {
-    //  Name          Bytes     Routine Cycles  Total Cycles
-    //-------------------------------------------------------
-    // Immediate   .... 0 ......... 0 ............. 1
-    // Accumulator .... 0 ......... 0 ............. 1
-    // ZeroPage    .... 1 ......... 1 ............. 2
-    // ZeroPage_X  .... 1 ......... 2 ............. 3
-    // ZeroPage_Y  .... 1 ......... 2 ............. 3
-    // Relative    .... 1 ......... 1 ............. 2*
-    // Absolute    .... 2 ......... 2 ............. 3
-    // Absolute_X  .... 2 ......... 2*............. 3*
-    // Absolute_Y  .... 2 ......... 2*............. 3*
-    // Indirect    .... 2 ......... 4 ............. 5
-    // Indexed_X   .... 1 ......... 4 ............. 5
-    // Indexed_Y   .... 1 ......... 3*............. 4*
-    // Aux_ResetVec.... 0 ......... 2 ............. 3
+//  Name       Bytes  Cycles  Total +Read +Write
+//-------------------------------------------------------
+// Immediate   .. 0 ... 0 ..... 1 ... 2 .... 0
+// Accumulator .. 0 ... 0 ..... 1 ... 1 .... 1
+// ZeroPage    .. 1 ... 1 ..... 2 ... 3 .... 4
+// ZeroPage_X  .. 1 ... 2 ..... 3 ... 4 .... 5
+// ZeroPage_Y  .. 1 ... 2 ..... 3 ... 4 .... 5
+// Relative    .. 1 ... 1 ..... 2*... 3*.... 4
+// Absolute    .. 2 ... 2 ..... 3 ... 4 .... 5
+// Absolute_X  .. 2 ... 2*..... 3*... 4*.... 6
+// Absolute_Y  .. 2 ... 2*..... 3*... 4*.... 6
+// Indirect    .. 2 ... 4 ..... 5 ... 6 .... 7
+// Indexed_X   .. 1 ... 4 ..... 5 ... 6 .... 7
+// Indexed_Y   .. 1 ... 3*..... 4*... 5*.... 6
+// Aux_ResetVec.. 0 ... 2 ..... 3 ... 4 .... 5
 
     // 0 operands
     if (state.addressMode == Meta::MemAcc_Immediate ||
@@ -166,7 +166,7 @@ Routine Cpu6502::Impl::ReadAddress()
     case Meta::MemAcc_Relative:
     {
         state.address = registers.PC + SByte( state.operand[0] );
-        state.nextPage = Bitwise::ClrLoByte(registers.PC) != Bitwise::ClrLoByte(state.address);
+        state.nextPage = Bitwise::ClrLoByte16(registers.PC) != Bitwise::ClrLoByte16(state.address);
         // TODO:
     }break;
     case Meta::MemAcc_Absolute:
@@ -177,13 +177,13 @@ Routine Cpu6502::Impl::ReadAddress()
     {
         state.helper16  = Bitwise::BytesToWord(state.operand);
         state.address = state.helper16  + registers.X;
-        state.nextPage = Bitwise::ClrLoByte(state.helper16 ) != Bitwise::ClrLoByte(state.address);
+        state.nextPage = Bitwise::ClrLoByte16(state.helper16 ) != Bitwise::ClrLoByte16(state.address);
     }break;
     case Meta::MemAcc_Absolute_Y:
     {
         state.helper16  = Bitwise::BytesToWord(state.operand);
         state.address = state.helper16  + registers.Y;
-        state.nextPage = Bitwise::ClrLoByte(state.helper16 ) != Bitwise::ClrLoByte(state.address);
+        state.nextPage = Bitwise::ClrLoByte16(state.helper16 ) != Bitwise::ClrLoByte16(state.address);
     }break;
     case Meta::MemAcc_Indirect:
     {
@@ -193,12 +193,12 @@ Routine Cpu6502::Impl::ReadAddress()
         WaitClock();
 
         // Cycle 4
-        if ( Bitwise::LoByte(state.helper16) == 0xff &&
+        if ( Bitwise::LoByte16(state.helper16) == 0xff &&
              cfg.originalIndirectFetch)
         {
             // An original 6502 has does not correctly fetch the target
             // address if the indirect vector falls on a page boundary
-            state.indirect[1] = memory_->Read( Bitwise::ClrLoByte(state.helper16) );
+            state.indirect[1] = memory_->Read( Bitwise::ClrLoByte16(state.helper16) );
         }
         else
         {
@@ -234,7 +234,7 @@ Routine Cpu6502::Impl::ReadAddress()
         state.indirect[1] = memory_->Read( (state.helper16 + 1) & 0xff );
         state.helper16 = Bitwise::BytesToWord(state.indirect);
         state.address = state.helper16  + registers.Y;
-        state.nextPage = Bitwise::ClrLoByte(state.helper16) != Bitwise::ClrLoByte(state.address);
+        state.nextPage = Bitwise::ClrLoByte16(state.helper16) != Bitwise::ClrLoByte16(state.address);
         WaitClock();
         // TODO: STA exception in cycles
     }break;
@@ -334,17 +334,17 @@ Routine Cpu6502::Impl::Instr_ADC()
     Execute( ReadData() );
 
     state.helper16 = registers.A + state.data + registers.Carry();
-    state.helper8 = Bitwise::LoByte(state.helper16);
+    state.helper8 = Byte(state.helper16);
 
-    registers.SetCarry( state.helper16 > 255 ? 1 : 0 );
+    registers.SetCarry( state.helper16 > 0xff ? 1 : 0 );
     registers.SetZero( state.helper8 == 0 ? 1 : 0 );
 
     registers.SetOverflow(
-                (Bitwise::Sign(registers.A) == Bitwise::Sign(state.data)) &&
-                (Bitwise::Sign(registers.A) != Bitwise::Sign(state.helper8))
+                (Bitwise::Sign8(registers.A) == Bitwise::Sign8(state.data)) &&
+                (Bitwise::Sign8(registers.A) != Bitwise::Sign8(state.helper8))
                 ? 1 : 0);
 
-    registers.SetNegative( Bitwise::Sign(state.helper8) );
+    registers.SetNegative( Bitwise::Sign8(state.helper8) );
 
     registers.A = state.helper8;
 
@@ -367,7 +367,7 @@ Routine Cpu6502::Impl::Instr_AND()
     registers.A &= state.data;
 
     registers.SetZero( registers.A == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.A) );
+    registers.SetNegative( Bitwise::Sign8(registers.A) );
 
     co_return;
 }
@@ -378,12 +378,12 @@ Routine Cpu6502::Impl::Instr_ASL()
     Execute( ReadAddress() );
     Execute( ReadData() );
 
-    registers.SetCarry( Bitwise::Bit(state.data, 7) );
+    registers.SetCarry( Bitwise::Bit8(state.data, 7) );
 
     state.data <<= 1;
 
     registers.SetZero( state.data == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(state.data) );
+    registers.SetNegative( Bitwise::Sign8(state.data) );
 
     // Cycle 1
     WaitClock();
@@ -398,7 +398,7 @@ Routine Cpu6502::Impl::Instr_BCC()
 {
     Execute( ReadAddress() );
 
-    if (0 != registers.Carry())
+    if (registers.Carry())
     {
         co_return;
     }
@@ -421,7 +421,7 @@ Routine Cpu6502::Impl::Instr_BCS()
 {
     Execute( ReadAddress() );
 
-    if (0 == registers.Carry())
+    if ( ! registers.Carry())
     {
         co_return;
     }
@@ -445,7 +445,7 @@ Routine Cpu6502::Impl::Instr_BEQ()
 {
     Execute( ReadAddress() );
 
-    if (0 != registers.Zero())
+    if ( ! registers.Equal())
     {
         co_return;
     }
@@ -470,8 +470,8 @@ Routine Cpu6502::Impl::Instr_BIT()
     Execute( ReadData() );
 
     registers.SetZero( (registers.A & state.data) == 0 ? 1 : 0 );
-    registers.SetOverflow( Bitwise::Bit(state.data, 6) );
-    registers.SetNegative( Bitwise::Bit(state.data, 7) );
+    registers.SetOverflow( Bitwise::Bit8(state.data, 6) );
+    registers.SetNegative( Bitwise::Bit8(state.data, 7) );
 
     co_return;
 }
@@ -481,7 +481,7 @@ Routine Cpu6502::Impl::Instr_BMI()
 {
     Execute( ReadAddress() );
 
-    if (0 == registers.Negative())
+    if (registers.Positive())
     {
         co_return;
     }
@@ -504,7 +504,7 @@ Routine Cpu6502::Impl::Instr_BNE()
 {
     Execute( ReadAddress() );
 
-    if (0 == registers.Zero())
+    if (registers.Equal())
     {
         co_return;
     }
@@ -527,7 +527,7 @@ Routine Cpu6502::Impl::Instr_BPL()
 {
     Execute( ReadAddress() );
 
-    if (0 != registers.Negative())
+    if (registers.Negative())
     {
         co_return;
     }
@@ -549,12 +549,12 @@ Routine Cpu6502::Impl::Instr_BPL()
 Routine Cpu6502::Impl::Instr_BRK()
 {
     // Cycle 1
-    memory_->Write( registers.StackAddress(), Bitwise::HiByte( registers.PC + 2 ) );
+    memory_->Write( registers.StackAddress(), Bitwise::HiByte16( registers.PC + 2 ) );
     registers.ApplyPush();
     WaitClock();
 
     // Cycle 2
-    memory_->Write( registers.StackAddress(), Bitwise::LoByte( registers.PC + 2 ) );
+    memory_->Write( registers.StackAddress(), Bitwise::LoByte16( registers.PC + 2 ) );
     registers.ApplyPush();
     WaitClock();
 
@@ -577,7 +577,7 @@ Routine Cpu6502::Impl::Instr_BVC()
 {
     Execute( ReadAddress() );
 
-    if (0 != registers.Overflow())
+    if (registers.Overflow())
     {
         co_return;
     }
@@ -600,7 +600,7 @@ Routine Cpu6502::Impl::Instr_BVS()
 {
     Execute( ReadAddress() );
 
-    if (0 == registers.Overflow())
+    if ( ! registers.Overflow())
     {
         co_return;
     }
@@ -673,7 +673,7 @@ Routine Cpu6502::Impl::Instr_CMP()
 
     registers.SetCarry( registers.A >= state.data ? 1 : 0);
     registers.SetZero( registers.A == state.data ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.A - state.data) );
+    registers.SetNegative( Bitwise::Sign8(registers.A - state.data) );
 
     co_return;
 }
@@ -686,7 +686,7 @@ Routine Cpu6502::Impl::Instr_CPX()
 
     registers.SetCarry( registers.X >= state.data ? 1 : 0);
     registers.SetZero( registers.X == state.data ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.X - state.data) );
+    registers.SetNegative( Bitwise::Sign8(registers.X - state.data) );
 
     co_return;
 }
@@ -699,7 +699,7 @@ Routine Cpu6502::Impl::Instr_CPY()
 
     registers.SetCarry( registers.Y >= state.data ? 1 : 0);
     registers.SetZero( registers.Y == state.data ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.Y - state.data) );
+    registers.SetNegative( Bitwise::Sign8(registers.Y - state.data) );
 
     co_return;
 }
@@ -716,7 +716,7 @@ Routine Cpu6502::Impl::Instr_DEC()
     // Cycle 1
     state.data--;
     registers.SetZero( state.data == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(state.data) );
+    registers.SetNegative( Bitwise::Sign8(state.data) );
     WaitClock();
 
     Execute( WriteData() );
@@ -730,7 +730,7 @@ Routine Cpu6502::Impl::Instr_DEX()
     // Cycle 1
     registers.X--;
     registers.SetZero( registers.X == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign( registers.X ));
+    registers.SetNegative( Bitwise::Sign8( registers.X ));
     WaitClock();
 
     co_return;
@@ -742,7 +742,7 @@ Routine Cpu6502::Impl::Instr_DEY()
     // Cycle 1
     registers.Y--;
     registers.SetZero( registers.Y == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign( registers.Y ));
+    registers.SetNegative( Bitwise::Sign8( registers.Y ));
     WaitClock();
 
     co_return;
@@ -764,7 +764,7 @@ Routine Cpu6502::Impl::Instr_EOR()
     registers.A ^= state.data;
 
     registers.SetZero( registers.A == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.A) );
+    registers.SetNegative( Bitwise::Sign8(registers.A) );
 
     co_return;
 }
@@ -781,7 +781,7 @@ Routine Cpu6502::Impl::Instr_INC()
     // Cycle 1
     state.data++;
     registers.SetZero( state.data == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(state.data) );
+    registers.SetNegative( Bitwise::Sign8(state.data) );
     WaitClock();
 
     Execute( WriteData() );
@@ -795,7 +795,7 @@ Routine Cpu6502::Impl::Instr_INX()
     // Cycle 1
     registers.X++;
     registers.SetZero( registers.X == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign( registers.X ));
+    registers.SetNegative( Bitwise::Sign8( registers.X ));
     WaitClock();
 
     co_return;
@@ -807,7 +807,7 @@ Routine Cpu6502::Impl::Instr_INY()
     // Cycle 1
     registers.Y++;
     registers.SetZero( registers.Y == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign( registers.Y ));
+    registers.SetNegative( Bitwise::Sign8( registers.Y ));
     WaitClock();
 
     co_return;
@@ -828,12 +828,12 @@ Routine Cpu6502::Impl::Instr_JSR()
     Execute( ReadAddress() );
 
     // Cycle 1
-    memory_->Write( registers.StackAddress(), Bitwise::HiByte( registers.PC - 1 ) );
+    memory_->Write( registers.StackAddress(), Bitwise::HiByte16( registers.PC - 1 ) );
     registers.ApplyPush();
     WaitClock();
 
     // Cycle 2
-    memory_->Write( registers.StackAddress(), Bitwise::LoByte( registers.PC - 1 ) );
+    memory_->Write( registers.StackAddress(), Bitwise::LoByte16( registers.PC - 1 ) );
     registers.ApplyPush();
     WaitClock();
 
@@ -860,7 +860,7 @@ Routine Cpu6502::Impl::Instr_LDA()
     registers.A = state.data;
 
     registers.SetZero( registers.A == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.A) );
+    registers.SetNegative( Bitwise::Sign8(registers.A) );
 
     co_return;
 }
@@ -881,7 +881,7 @@ Routine Cpu6502::Impl::Instr_LDX()
     registers.X = state.data;
 
     registers.SetZero( registers.X == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.X) );
+    registers.SetNegative( Bitwise::Sign8(registers.X) );
 
     co_return;
 }
@@ -902,7 +902,7 @@ Routine Cpu6502::Impl::Instr_LDY()
     registers.Y = state.data;
 
     registers.SetZero( registers.Y == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.Y) );
+    registers.SetNegative( Bitwise::Sign8(registers.Y) );
 
     co_return;
 }
@@ -913,12 +913,12 @@ Routine Cpu6502::Impl::Instr_LSR()
     Execute( ReadAddress() );
     Execute( ReadData() );
 
-    registers.SetCarry( Bitwise::Bit(state.data, 0) );
+    registers.SetCarry( Bitwise::Bit8(state.data, 0) );
 
     state.data >>= 1;
 
     registers.SetZero( state.data == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(state.data) );
+    registers.SetNegative( Bitwise::Sign8(state.data) );
 
     // Cycle 1
     WaitClock();
@@ -953,7 +953,7 @@ Routine Cpu6502::Impl::Instr_ORA()
     registers.A |= state.data;
 
     registers.SetZero( registers.A == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.A) );
+    registers.SetNegative( Bitwise::Sign8(registers.A) );
 
     co_return;
 }
@@ -999,7 +999,7 @@ Routine Cpu6502::Impl::Instr_PLA()
 
     // Cycle 3
     registers.SetZero( registers.A == 0 ? 1 : 0 );
-    registers.SetNegative( Bitwise::Sign(registers.A) );
+    registers.SetNegative( Bitwise::Sign8(registers.A) );
     WaitClock();
 
     co_return;
@@ -1026,11 +1026,22 @@ Routine Cpu6502::Impl::Instr_PLP()
 // ROL: Rotate Left
 Routine Cpu6502::Impl::Instr_ROL()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "ROL")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+    Execute( ReadData() );
+
+    state.helper8 = registers.Carry();
+    registers.SetCarry( Bitwise::Bit8(state.data, 7) );
+
+    state.data <<= 1;
+    Bitwise::SetBit8(state.data, 0, state.helper8);
+
+    registers.SetZero( state.data == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign8(state.data) );
+
+    // Cycle 1
+    WaitClock();
+
+    Execute( WriteData() );
 
     co_return;
 }
@@ -1038,11 +1049,22 @@ Routine Cpu6502::Impl::Instr_ROL()
 // ROR: Rotate Right
 Routine Cpu6502::Impl::Instr_ROR()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "ROR")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+    Execute( ReadData() );
+
+    state.helper8 = registers.Carry();
+    registers.SetCarry( Bitwise::Bit8(state.data, 0) );
+
+    state.data >>= 1;
+    Bitwise::SetBit8(state.data, 7, state.helper8);
+
+    registers.SetZero( state.data == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign8(state.data) );
+
+    // Cycle 1
+    WaitClock();
+
+    Execute( WriteData() );
 
     co_return;
 }
@@ -1050,11 +1072,29 @@ Routine Cpu6502::Impl::Instr_ROR()
 // RTI: Return from Interrupt
 Routine Cpu6502::Impl::Instr_RTI()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "RTI")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.ApplyPool();
+    state.helper8 = memory_->Read( registers.StackAddress() );
+    WaitClock();
+
+    // Cycle 2
+    registers.S = state.helper8;
+    registers.SetUnusedFlag();
+    registers.SetBreak();
+    WaitClock();
+
+    // Cycle 3
+    registers.ApplyPool();
+    Bitwise::SetLoByte16(registers.PC, memory_->Read(registers.StackAddress()) );
+    WaitClock();
+
+    // Cycle 4
+    registers.ApplyPool();
+    Bitwise::SetHiByte16(registers.PC, memory_->Read(registers.StackAddress()) );
+    WaitClock();
+
+    // Cycle 5
+    WaitClock();
 
     co_return;
 }
@@ -1062,11 +1102,30 @@ Routine Cpu6502::Impl::Instr_RTI()
 // RTS: Return from Subroutine
 Routine Cpu6502::Impl::Instr_RTS()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "RTS")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.ApplyPool();
+    state.helper8 = memory_->Read( registers.StackAddress() );
+    WaitClock();
+
+    // Cycle 2
+    registers.S = state.helper8;
+    registers.SetUnusedFlag();
+    registers.SetBreak();
+    WaitClock();
+
+    // Cycle 3
+    registers.ApplyPool();
+    Bitwise::SetLoByte16(registers.PC, memory_->Read(registers.StackAddress()) );
+    WaitClock();
+
+    // Cycle 4
+    registers.ApplyPool();
+    Bitwise::SetHiByte16(registers.PC, memory_->Read(registers.StackAddress()) );
+    registers.PC++;
+    WaitClock();
+
+    // Cycle 5
+    WaitClock();
 
     co_return;
 }
@@ -1074,11 +1133,33 @@ Routine Cpu6502::Impl::Instr_RTS()
 // SBC: Subtract with Carry
 Routine Cpu6502::Impl::Instr_SBC()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "SBC")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+
+    if (state.nextPage)
+    {
+        // Cycle 1
+        WaitClock();
+    }
+
+    Execute( ReadData() );
+
+    // not carry
+    state.helper8 = registers.A - state.data - (registers.Carry() ? 0 : 1);
+
+    registers.SetCarry(
+        (registers.A >= (state.data + (registers.Carry() ? 0 : 1)))
+        ? 1 : 0);
+
+    registers.SetZero( state.helper8 == 0 ? 1 : 0 );
+
+    registers.SetOverflow(
+        (Bitwise::Sign8(registers.A) != Bitwise::Sign8(state.data)) &&
+        (Bitwise::Sign8(registers.A) != Bitwise::Sign8(state.helper8))
+        ? 1:0);
+
+    registers.SetNegative( Bitwise::Sign8( state.helper8 ) );
+
+    registers.A = state.helper8;
 
     co_return;
 }
@@ -1086,11 +1167,9 @@ Routine Cpu6502::Impl::Instr_SBC()
 // SEC: Set Carry Flag
 Routine Cpu6502::Impl::Instr_SEC()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "SEC")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.SetCarry( 1 );
+    WaitClock();
 
     co_return;
 }
@@ -1098,11 +1177,9 @@ Routine Cpu6502::Impl::Instr_SEC()
 // SED: Set Decimal Flag
 Routine Cpu6502::Impl::Instr_SED()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "SED")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.SetDecimal( 1 );
+    WaitClock();
 
     co_return;
 }
@@ -1110,11 +1187,9 @@ Routine Cpu6502::Impl::Instr_SED()
 // SEI: Set Interrupt Disable
 Routine Cpu6502::Impl::Instr_SEI()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "SEI")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.SetInterrupt( 1 );
+    WaitClock();
 
     co_return;
 }
@@ -1122,11 +1197,15 @@ Routine Cpu6502::Impl::Instr_SEI()
 // STA: Store Accumulator
 Routine Cpu6502::Impl::Instr_STA()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "STA")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+    if ( state.addressMode == Meta::MemAcc_Indexed_Y )
+    {
+        // Cycle 1
+        // TODO: Verify it!
+        WaitClock();
+    }
+    state.data = registers.A;
+    Execute( WriteData() );
 
     co_return;
 }
@@ -1134,11 +1213,9 @@ Routine Cpu6502::Impl::Instr_STA()
 // STX: Store X Register
 Routine Cpu6502::Impl::Instr_STX()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "STX")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+    state.data = registers.X;
+    Execute( WriteData() );
 
     co_return;
 }
@@ -1146,11 +1223,9 @@ Routine Cpu6502::Impl::Instr_STX()
 // STY: Store Y Register
 Routine Cpu6502::Impl::Instr_STY()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "STY")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    Execute( ReadAddress() );
+    state.data = registers.Y;
+    Execute( WriteData() );
 
     co_return;
 }
@@ -1158,11 +1233,11 @@ Routine Cpu6502::Impl::Instr_STY()
 // TAX: Transfer Accumulator to X
 Routine Cpu6502::Impl::Instr_TAX()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "TAX")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.X = registers.A;
+    registers.SetZero( registers.X == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign8( registers.X ) );
+    WaitClock();
 
     co_return;
 }
@@ -1170,11 +1245,11 @@ Routine Cpu6502::Impl::Instr_TAX()
 // TAY: Transfer Accumulator to Y
 Routine Cpu6502::Impl::Instr_TAY()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "TAY")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.Y = registers.A;
+    registers.SetZero( registers.Y == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign8( registers.Y ) );
+    WaitClock();
 
     co_return;
 }
@@ -1182,11 +1257,11 @@ Routine Cpu6502::Impl::Instr_TAY()
 // TSX: Transfer Stack Pointer to X
 Routine Cpu6502::Impl::Instr_TSX()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "TSX")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.X = registers.SP;
+    registers.SetZero( registers.X == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign8( registers.X ) );
+    WaitClock();
 
     co_return;
 }
@@ -1194,11 +1269,11 @@ Routine Cpu6502::Impl::Instr_TSX()
 // TXA: Transfer X to Accumulator
 Routine Cpu6502::Impl::Instr_TXA()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "TXA")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.A = registers.X;
+    registers.SetZero( registers.A == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign8( registers.A ) );
+    WaitClock();
 
     co_return;
 }
@@ -1206,11 +1281,9 @@ Routine Cpu6502::Impl::Instr_TXA()
 // TXS: Transfer X to Stack Pointer
 Routine Cpu6502::Impl::Instr_TXS()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "TXS")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.SP = registers.X;
+    WaitClock();
 
     co_return;
 }
@@ -1218,11 +1291,11 @@ Routine Cpu6502::Impl::Instr_TXS()
 // TYA: Transfer Y to Accumulator
 Routine Cpu6502::Impl::Instr_TYA()
 {
-    Error("Cpu6502::Impl", "Not implemented")
-        .Msg("Instr: {}", "TYA")
-        .Msg("MemMode: {}", state.addressMode)
-        .Msg("CPU: {}", ToString())
-        .Throw();
+    // Cycle 1
+    registers.A = registers.Y;
+    registers.SetZero( registers.A == 0 ? 1 : 0 );
+    registers.SetNegative( Bitwise::Sign8( registers.A ) );
+    WaitClock();
 
     co_return;
 }
