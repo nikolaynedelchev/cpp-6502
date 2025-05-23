@@ -1,3 +1,9 @@
 [submodule "vcpkg"]
 	path = vcpkg
 	url = https://github.com/microsoft/vcpkg.git
+[submodule "tests/nes-test-roms"]
+	path = tests/nes-test-roms
+	url = https://github.com/christopherpow/nes-test-roms
+[submodule "tests/klaus2m5"]
+	path = tests/klaus2m5
+	url = https://github.com/Klaus2m5/6502_65C02_functional_tests

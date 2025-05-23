@@ -37,6 +37,7 @@ http://www.visual6502.org/
 https://westerndesigncenter.com/wdc/
 
 # tests
+https://github.com/christopherpow/nes-test-roms
 https://github.com/Klaus2m5/6502_65C02_functional_tests
 http://www.6502.org/tutorials/decimal_mode.html#B
 https://stackoverflow.com/questions/31260415/how-to-run-klaus-dormanns-6502-test-suite-on-real-hardware-with-separate-rom-an
