@@ -30,12 +30,15 @@ Byte Membus::Read(Address address)
             testSequence_[sequenceIdx_].isRead == false)
         {
             isSequenceOk = false;
-            fmt::println("[actual] Cmd: R, Address: x{:04X}, data: x{:02X}", address, data);
-            fmt::println("[expect] Cmd: {}, Address: x{:04X}, data: x{:02X}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
-                         testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].data);
+            fmt::println("[actual] Cmd: R, Address: x{:04X}/{}, data: x{:02X}/{}", address, address, data, data);
+            fmt::println("[expect] Cmd: {}, Address: x{:04X}/{}, data: x{:02X}/{}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
+                         testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].address,
+                         testSequence_[sequenceIdx_].data, testSequence_[sequenceIdx_].data);
+            int dummyStop = 1;
+            (void)dummyStop;
         }
-
         sequenceIdx_++;
+
         if (sequenceIdx_ >= testSequence_.size())
         {
             testSequence_.clear();
@@ -61,12 +64,15 @@ void Membus::Write(Address address, Byte data)
             testSequence_[sequenceIdx_].isRead == true)
         {
             isSequenceOk = false;
-            fmt::println("[actual] Cmd: W, Address: x{:04X}, data: x{:02X}", address, data);
-            fmt::println("[expect] Cmd: {}, Address: x{:04X}, data: x{:02X}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
-                         testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].data);
+            fmt::println("[actual] Cmd: W, Address: x{:04X}/{}, data: x{:02X}/{} ", address, address, data, data);
+            fmt::println("[expect] Cmd: {}, Address: x{:04X}/{}, data: x{:02X}/{}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
+                         testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].address,
+                         testSequence_[sequenceIdx_].data, testSequence_[sequenceIdx_].data);
+            int dummyStop = 1;
+            (void)dummyStop;
         }
-
         sequenceIdx_++;
+
         if (sequenceIdx_ >= testSequence_.size())
         {
             testSequence_.clear();
@@ -182,7 +188,7 @@ size_t Membus::SequenceStep() const noexcept
     return sequenceIdx_;
 }
 
-bool Membus::SequenceStepsLeft() const noexcept
+size_t Membus::SequenceStepsLeft() const noexcept
 {
     return testSequence_.size() - sequenceIdx_;
 }

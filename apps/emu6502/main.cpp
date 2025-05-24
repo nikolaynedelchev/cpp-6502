@@ -130,16 +130,21 @@ std::string ParseSingleTest(const Json& test, Cpu6502::State& initial, Cpu6502::
     return test.at("name");
 }
 
-void JsonTestTest(size_t fileNum)
+void JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
 {
-    std::string numStr = fmt::format("{:02x}", fileNum);
+    std::string numStr = fmt::format("{:02x}", opcode);
     std::string fileName = "/home/nikolay/ndn/cpp-6502/tests/SingleStepTests/6502/v1/" + numStr + ".json";
     auto tests = Json::parse( ReadFileToString( fileName ) );
-
+    fmt::println("Opcode: x{:02x}, {} tests loaded", opcode, tests.size());
     int fails = 0;
     int testNum = 0;
     for (auto& test : tests)
     {
+        if(testNum < startFrom)
+        {
+            testNum++;
+            continue;
+        }
         if (fails > 0)
         {
             break;
@@ -158,6 +163,11 @@ void JsonTestTest(size_t fileNum)
         auto cpu = Cpu6502::CreateInstance(&memBus);
         cpu->PowerOn();
 
+        if (6 == testNum)
+        {
+            int rtrt = 34;
+            (void)rtrt;
+        }
         cpu->ForceState(initial);
         memBus.LookForSequence(testSequence);
 
@@ -177,22 +187,31 @@ void JsonTestTest(size_t fileNum)
 
             if (!memBus.IsSequenceOk())
             {
-                fmt::println( "Test {} fail, json:\n{}\n-----\n", testNum, test.dump());
+
                 fmt::println( "Fail name: {}", name );
-                fmt::println( "Step: {}", memBus.SequenceStep());
+                fmt::println( "MemSeqStep: {}, left: {}", memBus.SequenceStep(), memBus.SequenceStepsLeft());
                 fmt::println( "cycles: {}, instructions: {}", cpu->GetLifetime().cycleCounter, cpu->GetLifetime().instructionCounter);
                 fmt::println( "cpu: {}", cpu->Dump());
+                fmt::println( "\n\nInitital part: {}", test.at("initial").dump() );
+                fmt::println( "Final    part: {}", test.at("final").dump() );
+                fmt::println( "Cycles   part: {}", test.at("cycles").dump() );
+                fmt::println( "\nTest {} fail, json:\n{}\n-----\n", testNum, test.dump());
+                fmt::println("\n\n[[[  instr: {}, opcode: x{:02X}, test: {}  ]]]\n", instr, opcode, testNum);
                 fails++;
                 break;
             }
             if (memBus.SequenceStepsLeft() == 0 && cpu->IsInstructionDone())
             {
-                fmt::println( "Test {} fail, json:\n{}\n-----\n", testNum, test.dump(3));
                 fmt::println( "Fail: {}", name );
                 fmt::println( "Memory looks OK, but cpu compare fails (maybe)" );
                 fmt::println( "MemSeqStep: {}, left: {}", memBus.SequenceStep(), memBus.SequenceStepsLeft());
                 fmt::println( "cycles: {}, instructions: {}", cpu->GetLifetime().cycleCounter, cpu->GetLifetime().cycleCounter);
                 fmt::println( "cpu: {}", cpu->Dump());
+                fmt::println( "\n\nInitital part: {}", test.at("initial").dump() );
+                fmt::println( "Final    part: {}", test.at("final").dump() );
+                fmt::println( "Cycles   part: {}", test.at("cycles").dump() );
+                fmt::println( "\nTest {} fail, json:\n{}\n-----\n", testNum, test.dump());
+                fmt::println("\n\n[[[  instr: {}, opcode: x{:02X}, test: {}  ]]]\n", instr, opcode, testNum);
                 fails++;
                 break;
             }
@@ -201,12 +220,12 @@ void JsonTestTest(size_t fileNum)
     }
     if (fails)
     {
-        fmt::println("test failed, filenum: {}", fileNum);
+        fmt::println("test failed, opcode: {}", opcode);
         fmt::println("fails: {}", fails);
     }
     else
     {
-        fmt::println("test: {} OK", fileNum);
+        fmt::println("Opcode: {} [ OK ]", opcode);
     }
 }
 
@@ -216,9 +235,11 @@ int Main(int /*argc*/, char* /*argv*/[])
 
     //BootTest();
     //BinImageTest();
-
     const auto& instructions = Cpu6502::Impl::Meta::Instructions();
-    for(size_t i = 0x0a; i < 256; i++)
+
+    size_t opcode = 0x1E; // ASL
+    size_t startFromTest = 11; // 0;
+    for(size_t i = opcode; i < 256; i++)
     {
         if (instructions[i].name == "INVALID")
         {
@@ -227,7 +248,7 @@ int Main(int /*argc*/, char* /*argv*/[])
         else
         {
             fmt::println("Start test: x{:02X}, {}", i, instructions[i].name);
-            JsonTestTest(i);
+            JsonTestTest(i, instructions[i].name, startFromTest);
         }
         fmt::println("\n-------------------------------\n");
     }

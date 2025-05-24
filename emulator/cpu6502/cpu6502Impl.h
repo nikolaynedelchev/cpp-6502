@@ -67,10 +67,10 @@ struct Cpu6502::Impl
 
         Byte operand[2] = {0, 0};
         Byte indirect[2] = {0, 0};
-        bool nextPage = false;
 
-        Word address = 0;
         uint16_t addressMode = 0;
+        Word address = 0;
+        std::optional<Word> pageCrossedAddr{};
 
         Byte data = 0;
 
@@ -78,20 +78,17 @@ struct Cpu6502::Impl
         Word helper16;
     } state;
 
-    struct
-    {
-        // An original 6502 has does not correctly fetch the target
-        // address if the indirect vector falls on a page boundary
-        // (e.g. $xxFF where xx is any value from $00 to $FF).
-        // In this case fetches the LSB from $xxFF as expected
-        // but takes the MSB from $xx00.
-        // This is fixed in some later chips like the 65SC02
-        bool originalIndirectFetch = true;
-    }cfg;
-
     Lifetime lifetime;
 
     std::string ToString() const noexcept;
+
+    inline constexpr Routine::Empty DummyRead_PC();
+    inline constexpr Routine::Empty DummyRead_Addr();
+
+    inline constexpr Routine::Empty DummyWrite();
+    inline constexpr Routine::Empty PrepareNextPage();
+
+    ////////////////////////////////////////////////////////////////
 
     Routine ResetInstruction();
     Routine StartNewInstruction();
@@ -99,7 +96,6 @@ struct Cpu6502::Impl
     Routine ReadData();
     Routine WriteData();
     Routine PrepareWriteData();
-    Routine PreparePushStack();
 
     Routine Instr_ADC();
     Routine Instr_AND();

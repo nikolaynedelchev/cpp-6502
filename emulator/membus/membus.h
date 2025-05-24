@@ -44,7 +44,7 @@ public:
     void LookForSequence(std::vector<TestSequence> testSequence) noexcept;
     bool IsSequenceOk() const noexcept;
     size_t SequenceStep() const noexcept;
-    bool SequenceStepsLeft() const noexcept;
+    size_t SequenceStepsLeft() const noexcept;
 
 private:
 
