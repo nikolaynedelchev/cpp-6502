@@ -30,8 +30,8 @@ Byte Membus::Read(Address address)
             testSequence_[sequenceIdx_].isRead == false)
         {
             isSequenceOk = false;
-            fmt::println("Reading from: {}, data: {}", address, data);
-            fmt::println("is reading: {}, address: {}, data: {}", testSequence_[sequenceIdx_].isRead,
+            fmt::println("[actual] Cmd: R, Address: x{:04X}, data: x{:02X}", address, data);
+            fmt::println("[expect] Cmd: {}, Address: x{:04X}, data: x{:02X}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
                          testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].data);
         }
 
@@ -61,8 +61,8 @@ void Membus::Write(Address address, Byte data)
             testSequence_[sequenceIdx_].isRead == true)
         {
             isSequenceOk = false;
-            fmt::println("Writing from: {}, data: {}", address, data);
-            fmt::println("is writing: {}, address: {}, data: {}", !testSequence_[sequenceIdx_].isRead,
+            fmt::println("[actual] Cmd: W, Address: x{:04X}, data: x{:02X}", address, data);
+            fmt::println("[expect] Cmd: {}, Address: x{:04X}, data: x{:02X}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
                          testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].data);
         }
 
@@ -177,9 +177,14 @@ bool Membus::IsSequenceOk() const noexcept
     return isSequenceOk;
 }
 
-bool Membus::SequenceStep() const noexcept
+size_t Membus::SequenceStep() const noexcept
 {
     return sequenceIdx_;
+}
+
+bool Membus::SequenceStepsLeft() const noexcept
+{
+    return testSequence_.size() - sequenceIdx_;
 }
 
 }

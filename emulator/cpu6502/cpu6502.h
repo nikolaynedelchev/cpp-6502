@@ -17,6 +17,7 @@ public:
     void PowerOn();
     void Reset();
     std::string Dump() const noexcept;
+    bool IsInstructionDone() const noexcept;
 
     // IDevice interface
     void Clock() final;

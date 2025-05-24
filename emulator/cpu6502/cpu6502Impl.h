@@ -17,6 +17,7 @@ struct Cpu6502::Impl
     void PowerOn();
     void Reset();
     void Clock();
+    bool IsInstructionDone() const noexcept;
 
     void ForceState(const State& initial) noexcept;
     bool Compate(const State& state) const noexcept;
@@ -97,6 +98,8 @@ struct Cpu6502::Impl
     Routine ReadAddress();
     Routine ReadData();
     Routine WriteData();
+    Routine PrepareWriteData();
+    Routine PreparePushStack();
 
     Routine Instr_ADC();
     Routine Instr_AND();

@@ -130,12 +130,21 @@ std::string ParseSingleTest(const Json& test, Cpu6502::State& initial, Cpu6502::
     return test.at("name");
 }
 
-void JsonTestTest()
+void JsonTestTest(size_t fileNum)
 {
-    auto tests = Json::parse( ReadFileToString("/home/nikolay/ndn/cpp-6502/tests/SingleStepTests/6502/v1/00.json") );
+    std::string numStr = fmt::format("{:02x}", fileNum);
+    std::string fileName = "/home/nikolay/ndn/cpp-6502/tests/SingleStepTests/6502/v1/" + numStr + ".json";
+    auto tests = Json::parse( ReadFileToString( fileName ) );
 
+    int fails = 0;
+    int testNum = 0;
     for (auto& test : tests)
     {
+        if (fails > 0)
+        {
+            break;
+        }
+
         Cpu6502::State initial;
         Cpu6502::State final;
         std::vector<Membus::TestSequence> testSequence;
@@ -157,20 +166,47 @@ void JsonTestTest()
             memBus.Clock();
             cpu->Clock();
 
-            if (cpu->Compate(final))
+            if (cpu->IsInstructionDone() &&
+                cpu->Compate(final) &&
+                memBus.IsSequenceOk() &&
+                memBus.SequenceStepsLeft() == 0)
             {
-                fmt::println( "OK: {}", name );
+                //fmt::println( "OK: {}", name );
                 break;
             }
+
             if (!memBus.IsSequenceOk())
             {
-                fmt::println( "Fail: {}", name );
+                fmt::println( "Test {} fail, json:\n{}\n-----\n", testNum, test.dump());
+                fmt::println( "Fail name: {}", name );
                 fmt::println( "Step: {}", memBus.SequenceStep());
+                fmt::println( "cycles: {}, instructions: {}", cpu->GetLifetime().cycleCounter, cpu->GetLifetime().instructionCounter);
+                fmt::println( "cpu: {}", cpu->Dump());
+                fails++;
+                break;
+            }
+            if (memBus.SequenceStepsLeft() == 0 && cpu->IsInstructionDone())
+            {
+                fmt::println( "Test {} fail, json:\n{}\n-----\n", testNum, test.dump(3));
+                fmt::println( "Fail: {}", name );
+                fmt::println( "Memory looks OK, but cpu compare fails (maybe)" );
+                fmt::println( "MemSeqStep: {}, left: {}", memBus.SequenceStep(), memBus.SequenceStepsLeft());
                 fmt::println( "cycles: {}, instructions: {}", cpu->GetLifetime().cycleCounter, cpu->GetLifetime().cycleCounter);
                 fmt::println( "cpu: {}", cpu->Dump());
+                fails++;
                 break;
             }
         }
+        testNum++;
+    }
+    if (fails)
+    {
+        fmt::println("test failed, filenum: {}", fileNum);
+        fmt::println("fails: {}", fails);
+    }
+    else
+    {
+        fmt::println("test: {} OK", fileNum);
     }
 }
 
@@ -180,7 +216,23 @@ int Main(int /*argc*/, char* /*argv*/[])
 
     //BootTest();
     //BinImageTest();
-    JsonTestTest();
+
+    const auto& instructions = Cpu6502::Impl::Meta::Instructions();
+    for(size_t i = 0x0a; i < 256; i++)
+    {
+        if (instructions[i].name == "INVALID")
+        {
+            fmt::println("test: x{:02X}, invalid command, SKIPEPD", i);
+        }
+        else
+        {
+            fmt::println("Start test: x{:02X}, {}", i, instructions[i].name);
+            JsonTestTest(i);
+        }
+        fmt::println("\n-------------------------------\n");
+    }
+    fmt::println("\n\n\nGoodbye !!!");
+
     return 0;
 }
 

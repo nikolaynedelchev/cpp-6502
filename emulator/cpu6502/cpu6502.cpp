@@ -28,6 +28,11 @@ std::string Cpu6502::Dump() const noexcept
     return impl_->ToString();
 }
 
+bool Cpu6502::IsInstructionDone() const noexcept
+{
+    return impl_->IsInstructionDone();
+}
+
 void Cpu6502::Clock()
 {
     impl_->Clock();
