@@ -6,6 +6,7 @@
 #include <ram/ram.h>
 #include <rom/rom.h>
 #include <common/common.h>
+#include <set>
 
 namespace cpp6502::emu
 {
@@ -130,7 +131,9 @@ std::string ParseSingleTest(const Json& test, Cpu6502::State& initial, Cpu6502::
     return test.at("name");
 }
 
-void JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
+
+std::set<Word> s_decOperands;
+bool JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
 {
     std::string numStr = fmt::format("{:02x}", opcode);
     std::string fileName = "/home/nikolay/ndn/cpp-6502/tests/SingleStepTests/6502/v1/" + numStr + ".json";
@@ -147,13 +150,20 @@ void JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
         }
         if (fails > 0)
         {
-            break;
+            //break;
         }
 
         Cpu6502::State initial;
         Cpu6502::State final;
         std::vector<Membus::TestSequence> testSequence;
         std::string name = ParseSingleTest(test, initial, final, testSequence);
+
+        if( Bitwise::Bit8(initial.S, Cpu6502::Impl::Meta::FlagPos_Decimal) )
+        {
+            // Do not test decimal
+            s_decOperands.insert(Word(opcode));
+            continue;
+        }
 
         Ram ram(0x0000, 0xFFFF);
 
@@ -173,8 +183,24 @@ void JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
 
         while (true)
         {
-            memBus.Clock();
-            cpu->Clock();
+            bool hwError = false;
+            try
+            {
+                memBus.Clock();
+                cpu->Clock();
+            }
+            catch(const std::exception& e)
+            {
+                fmt::println("Exception: {}\n\n", e.what());
+                hwError = true;
+                fails++;
+            }
+            catch(...)
+            {
+                fmt::println("Unknown Exception\n\n");
+                hwError = true;
+                fails++;
+            }
 
             if (cpu->IsInstructionDone() &&
                 cpu->Compate(final) &&
@@ -185,7 +211,7 @@ void JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
                 break;
             }
 
-            if (!memBus.IsSequenceOk())
+            if (!memBus.IsSequenceOk() || hwError)
             {
 
                 fmt::println( "Fail name: {}", name );
@@ -212,6 +238,7 @@ void JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
                 fmt::println( "Cycles   part: {}", test.at("cycles").dump() );
                 fmt::println( "\nTest {} fail, json:\n{}\n-----\n", testNum, test.dump());
                 fmt::println("\n\n[[[  instr: {}, opcode: x{:02X}, test: {}  ]]]\n", instr, opcode, testNum);
+
                 fails++;
                 break;
             }
@@ -222,10 +249,12 @@ void JsonTestTest(size_t opcode, std::string instr, size_t startFrom = 0)
     {
         fmt::println("test failed, opcode: {}", opcode);
         fmt::println("fails: {}", fails);
+        return false;
     }
     else
     {
         fmt::println("Opcode: {} [ OK ]", opcode);
+        return true;
     }
 }
 
@@ -237,8 +266,9 @@ int Main(int /*argc*/, char* /*argv*/[])
     //BinImageTest();
     const auto& instructions = Cpu6502::Impl::Meta::Instructions();
 
-    size_t opcode = 0x1E; // ASL
-    size_t startFromTest = 11; // 0;
+    size_t opcode = 0x1e;
+    size_t startFromTest = 0;
+    bool isOk = true;
     for(size_t i = opcode; i < 256; i++)
     {
         if (instructions[i].name == "INVALID")
@@ -248,10 +278,25 @@ int Main(int /*argc*/, char* /*argv*/[])
         else
         {
             fmt::println("Start test: x{:02X}, {}", i, instructions[i].name);
-            JsonTestTest(i, instructions[i].name, startFromTest);
+
+            if (false == JsonTestTest(i, instructions[i].name, startFromTest))
+            {
+                isOk = false;
+            }
         }
-        fmt::println("\n-------------------------------\n");
+        fmt::println("\n-------------------------------");
     }
+
+    fmt::println("\n-------------------------------");
+    fmt::println("\n-------------------------------\n");
+    fmt::println("Everything OK: {}", isOk ? "yes":"NO");
+
+    fmt::println("Decimal instructions:");
+    for(auto op : s_decOperands)
+    {
+        fmt::println("Inst: {}, opcode: {}, desc: {}", instructions[op].name, op, instructions[op].description);
+    }
+
     fmt::println("\n\n\nGoodbye !!!");
 
     return 0;
@@ -260,4 +305,20 @@ int Main(int /*argc*/, char* /*argv*/[])
 }
 
 
-int main(int argc, char* argv[]){return cpp6502::emu::Main(argc, argv);}
+int main(int argc, char* argv[])
+{
+    int ret = 666;
+    try
+    {
+        ret = cpp6502::emu::Main(argc, argv);
+    }
+    catch(const std::exception& e)
+    {
+        fmt::println("Unhandled Exception: {}\n\n", e.what());
+    }
+    catch(...)
+    {
+        fmt::println("Unhandled Unknown Exception\n\n");
+    }
+    return ret;
+}

@@ -21,7 +21,15 @@ public:
 
     // IMemory interface
     Byte Read(Address);
+    Byte ReadFromLastAddress() final;
+
     void Write(Address, Byte);
+    void WriteLastData(Address) final;
+    void WriteToLastAddress(Byte) final;
+    void WriteToLastAddressLastData() final;
+
+    void RepeatLastOperation() final;
+
     std::string ToString() const;
     Byte Unsafe_Read(Address) final;
     void Unsafe_Write(Address, Byte) final;

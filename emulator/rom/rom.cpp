@@ -1,5 +1,4 @@
 #include "rom.h"
-
 namespace cpp6502
 {
 
@@ -74,6 +73,14 @@ Byte Rom::Read(Address address)
     return memory_[address - start_];
 }
 
+Byte Rom::ReadFromLastAddress()
+{
+    Error("Rom::ReadFromLastAddress", "Not Implamented")
+        .Throw();
+
+    return 0;
+}
+
 void Rom::Write(Address address, Byte data)
 {
     if (address < start_ || address > end_)
@@ -86,6 +93,30 @@ void Rom::Write(Address address, Byte data)
             .Msg("Data: {}", int(data))
             .Throw();
     }
+}
+
+void Rom::WriteLastData(Address)
+{
+    Error("Rom::WriteLastData", "Not Implamented")
+        .Throw();
+}
+
+void Rom::WriteToLastAddress(Byte)
+{
+    Error("Rom::WriteToLastAddress", "Not Implamented")
+        .Throw();
+}
+
+void Rom::WriteToLastAddressLastData()
+{
+    Error("Rom::WriteToLastAddressLastData", "Not Implamented")
+        .Throw();
+}
+
+void Rom::RepeatLastOperation()
+{
+    Error("Rom::RepeatLastOperation", "Not Implamented")
+        .Throw();
 }
 
 std::string Rom::ToString() const

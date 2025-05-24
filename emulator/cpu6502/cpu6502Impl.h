@@ -79,13 +79,20 @@ struct Cpu6502::Impl
     } state;
 
     Lifetime lifetime;
+    uint32_t instructionCounter = 0;
 
     std::string ToString() const noexcept;
 
+    inline constexpr Routine::Empty RepeatLastMemoryOperation();
+
+    inline constexpr Routine::Empty DummyRead();
+    inline constexpr Routine::Empty DummyRead(Address);
     inline constexpr Routine::Empty DummyRead_PC();
     inline constexpr Routine::Empty DummyRead_Addr();
 
     inline constexpr Routine::Empty DummyWrite();
+    inline constexpr Routine::Empty DummyWrite(Byte data);
+
     inline constexpr Routine::Empty PrepareNextPage();
 
     ////////////////////////////////////////////////////////////////

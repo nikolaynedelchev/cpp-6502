@@ -41,8 +41,10 @@ void Cpu6502::Impl::Reset()
 void Cpu6502::Impl::Clock()
 {
     lifetime.cycleCounter++;
+    instructionCounter++;
     if (IsInstructionDone())
     {
+        instructionCounter = 1;
         activeInstruction_.Destroy();
         activeInstruction_ = StartNewInstruction();
     }
@@ -123,6 +125,24 @@ std::string Cpu6502::Impl::ToString() const noexcept
     );
 }
 
+inline constexpr Routine::Empty Cpu6502::Impl::RepeatLastMemoryOperation()
+{
+    memory_->RepeatLastOperation();
+    return Routine::Empty{};
+}
+
+inline constexpr Routine::Empty Cpu6502::Impl::DummyRead()
+{
+    state.helper8 = memory_->ReadFromLastAddress();
+    return Routine::Empty{};
+}
+
+inline constexpr Routine::Empty Cpu6502::Impl::DummyRead(Address address)
+{
+    state.helper8 = memory_->Read(address);
+    return Routine::Empty{};
+}
+
 inline constexpr Routine::Empty Cpu6502::Impl::DummyRead_PC()
 {
     state.helper8 = memory_->Read(registers.PC);
@@ -137,7 +157,13 @@ inline constexpr Routine::Empty Cpu6502::Impl::DummyRead_Addr()
 
 inline constexpr Routine::Empty Cpu6502::Impl::DummyWrite()
 {
-    memory_->Write( state.address, state.data );
+    memory_->WriteToLastAddressLastData();
+    return Routine::Empty{};
+}
+
+inline constexpr Routine::Empty Cpu6502::Impl::DummyWrite(Byte data)
+{
+    memory_->WriteToLastAddress(data);
     return Routine::Empty{};
 }
 
@@ -354,7 +380,6 @@ Routine Cpu6502::Impl::ReadAddress()
             quirks::AddressWrappingOnIndirectFetch_byte_2_PRE(this);
             state.indirect[1] = memory_->Read( state.helper16 + 1 );
             state.address = Bitwise::BytesToWord(state.indirect);
-            state.helper8 = memory_->Read(registers.PC); // TODO: check if this is right
         } co_yield WaitRead();
         // TODO:
     }break;
@@ -455,18 +480,24 @@ Routine Cpu6502::Impl::WriteData()
         co_return;
     }
 
-    // Cycle 1
-    co_yield DummyWrite(); {}
+    // // Cycle 1
+    // // fix ASL 0x06
+    // co_yield DummyWrite(state.data); {}
 
-    if (state.addressMode & (
-            Meta::MemAcc_Absolute_X |
-            Meta::MemAcc_Absolute_Y)
-        )
+    // 0x99 STA
+    // if (state.addressMode & (
+    //     Meta::MemAcc_Absolute_X |
+    //     Meta::MemAcc_Absolute_Y)
+    //     )
+    // {
+    //     // Cycle 2
+    //     // TODO: Not sure
+    //     co_yield DummyWrite(); {}
+    // }
+
     {
-        // Cycle 2
-        // TODO: Not sure
-        co_yield DummyWrite(); {}
-    }
+        memory_->Write(state.address, state.data);
+    } co_yield FlushWrite();
 
     co_return;
 }
@@ -480,10 +511,22 @@ Routine Cpu6502::Impl::PrepareWriteData()
             .Throw();
     }
 
-    //if (state.addressMode != Meta::MemAcc_Accumulator)
+    if (state.addressMode == Meta::MemAcc_Accumulator)
     {
         // Cycle 1
-        co_yield DummyRead_Addr(); {}
+        // fix x06, ASL
+        co_yield DummyRead(registers.PC); {}
+    }
+    else if(state.addressMode == Meta::MemAcc_Absolute_X ||
+            state.addressMode == Meta::MemAcc_Absolute_Y)
+    {
+        // Cycle 1
+        co_yield DummyRead(); {}
+    }
+    else
+    {
+        // Cycle 1
+        co_yield DummyWrite(); {}
     }
 
     co_return;
@@ -549,9 +592,18 @@ Routine Cpu6502::Impl::Instr_AND()
 Routine Cpu6502::Impl::Instr_ASL()
 {
     WaitRoutine( ReadAddress() );
-    WaitRoutine( ReadData() );
 
-    WaitRoutine( PrepareWriteData() );
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 1
+        co_yield PrepareNextPage(); {}
+        WaitRoutine( ReadData() );
+    }
+    else
+    {
+        WaitRoutine( ReadData() );
+        WaitRoutine( PrepareWriteData() );
+    }
 
     registers.SetCarry( Bitwise::Bit8(state.data, 7) );
 
@@ -575,16 +627,16 @@ Routine Cpu6502::Impl::Instr_BCC()
         co_return;
     }
 
-    if (state.pageCrossedAddr.value_or(state.address) != state.address)
-    {
-        // Cycle 1
-        co_yield PrepareNextPage(); {}
-    }
-
-    // Cycle 1/2
+    // Cycle 1
     co_yield DummyRead_PC();
     {
         registers.PC = state.address;
+    }
+
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 2
+        co_yield PrepareNextPage(); {}
     }
 
     co_return;
@@ -600,16 +652,16 @@ Routine Cpu6502::Impl::Instr_BCS()
         co_return;
     }
 
-    if (state.pageCrossedAddr.value_or(state.address) != state.address)
-    {
-        // Cycle 1
-        co_yield PrepareNextPage(); {}
-    }
-
-    // Cycle 1/2
+    // Cycle 1
     co_yield DummyRead_PC();
     {
         registers.PC = state.address;
+    }
+
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 2
+        co_yield PrepareNextPage(); {}
     }
 
     co_return;
@@ -626,16 +678,16 @@ Routine Cpu6502::Impl::Instr_BEQ()
         co_return;
     }
 
-    if (state.pageCrossedAddr.value_or(state.address) != state.address)
-    {
-        // Cycle 1
-        co_yield PrepareNextPage(); {}
-    }
-
-    // Cycle 1/2
+    // Cycle 1
     co_yield DummyRead_PC();
     {
         registers.PC = state.address;
+    }
+
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 2
+        co_yield PrepareNextPage(); {}
     }
 
     co_return;
@@ -664,18 +716,17 @@ Routine Cpu6502::Impl::Instr_BMI()
         co_return;
     }
 
-    if (state.pageCrossedAddr.value_or(state.address) != state.address)
-    {
-        // Cycle 1
-        co_yield PrepareNextPage(); {}
-    }
-
-    // Cycle 1/2
+    // Cycle 1
     co_yield DummyRead_PC();
     {
         registers.PC = state.address;
     }
 
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 2
+        co_yield PrepareNextPage(); {}
+    }
     co_return;
 }
 
@@ -689,16 +740,16 @@ Routine Cpu6502::Impl::Instr_BNE()
         co_return;
     }
 
-    if (state.pageCrossedAddr.value_or(state.address) != state.address)
-    {
-        // Cycle 1
-        co_yield PrepareNextPage(); {}
-    }
-
-    // Cycle 1/2
+    // Cycle 1
     co_yield DummyRead_PC();
     {
         registers.PC = state.address;
+    }
+
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 2
+        co_yield PrepareNextPage(); {}
     }
 
     co_return;
@@ -713,7 +764,6 @@ Routine Cpu6502::Impl::Instr_BPL()
     {
         co_return;
     }
-
 
     // Cycle 1
     co_yield DummyRead_PC();
@@ -774,16 +824,16 @@ Routine Cpu6502::Impl::Instr_BVC()
         co_return;
     }
 
-    if (state.pageCrossedAddr.value_or(state.address) != state.address)
-    {
-        // Cycle 1
-        co_yield PrepareNextPage(); {}
-    }
-
-    // Cycle 1/2
+    // Cycle 1
     co_yield DummyRead_PC();
     {
         registers.PC = state.address;
+    }
+
+    // Cycle 2
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        co_yield PrepareNextPage(); {}
     }
 
     co_return;
@@ -799,16 +849,16 @@ Routine Cpu6502::Impl::Instr_BVS()
         co_return;
     }
 
-    if (state.pageCrossedAddr.value_or(state.address) != state.address)
-    {
-        // Cycle 1
-        co_yield PrepareNextPage(); {}
-    }
-
-    // Cycle 1/2
+    // Cycle 1
     co_yield DummyRead_PC();
     {
         registers.PC = state.address;
+    }
+
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 2
+        co_yield PrepareNextPage(); {}
     }
 
     co_return;
@@ -913,13 +963,24 @@ Routine Cpu6502::Impl::Instr_DEC()
 {
     WaitRoutine( ReadAddress() );
 
-    // Do not apply state.pageCrossed, just skip it
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 1
+        co_yield PrepareNextPage(); {}
+        WaitRoutine( ReadData() );
+    }
+    else
+    {
+        WaitRoutine( ReadData() );
+        WaitRoutine( PrepareWriteData() );
+    }
 
-    WaitRoutine( ReadData() );
+    if (state.addressMode == Meta::MemAcc_Absolute_X)
+    {
+        WaitRoutine( WriteData() );
+    }
 
-    WaitRoutine( PrepareWriteData() );
-
-    // Cycle 1
+    // Cycle 1,2
     state.data--;
     registers.SetZero( state.data == 0 ? 1 : 0 );
     registers.SetNegative( Bitwise::Sign8(state.data) );
@@ -983,13 +1044,24 @@ Routine Cpu6502::Impl::Instr_INC()
 {
     WaitRoutine( ReadAddress() );
 
-    // Do not apply state.pageCrossed, just skip it
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 1
+        co_yield PrepareNextPage(); {}
+        WaitRoutine( ReadData() );
+    }
+    else
+    {
+        WaitRoutine( ReadData() );
+        WaitRoutine( PrepareWriteData() );
+    }
 
-    WaitRoutine( ReadData() );
+    if (state.addressMode == Meta::MemAcc_Absolute_X)
+    {
+        WaitRoutine( WriteData() );
+    }
 
-    WaitRoutine( PrepareWriteData() );
-
-    // Cycle 1
+    // Cycle 1,2
     state.data++;
     registers.SetZero( state.data == 0 ? 1 : 0 );
     registers.SetNegative( Bitwise::Sign8(state.data) );
@@ -1039,23 +1111,32 @@ Routine Cpu6502::Impl::Instr_JMP()
 // JSR: Jump to Subroutine
 Routine Cpu6502::Impl::Instr_JSR()
 {
-    WaitRoutine( ReadAddress() );
-
     // Cycle 1
-    co_yield DummyRead_PC(); {}
+    {
+        state.operand[0] = memory_->Read( registers.PC );
+        registers.PC++;
+    } co_yield WaitRead();
 
     // Cycle 2
-    {
-        memory_->Write( registers.StackAddress(), Bitwise::HiByte16( registers.PC - 1 ) );
-        registers.ApplyPush();
-    } co_yield FlushWrite();
+    co_yield DummyRead(registers.StackAddress()); {}
 
     // Cycle 3
     {
-        memory_->Write( registers.StackAddress(), Bitwise::LoByte16( registers.PC - 1 ) );
+        memory_->Write( registers.StackAddress(), Bitwise::HiByte16( registers.PC ) );
         registers.ApplyPush();
-        registers.PC = state.address;
     } co_yield FlushWrite();
+
+    // Cycle 4
+    {
+        memory_->Write( registers.StackAddress(), Bitwise::LoByte16( registers.PC ) );
+        registers.ApplyPush();
+    } co_yield FlushWrite();
+
+    // Cycle 5
+    {
+        state.operand[1] = memory_->Read( registers.PC );
+        registers.PC = Bitwise::BytesToWord(state.operand);
+    } co_yield WaitRead();
 
     co_return;
 }
@@ -1127,9 +1208,18 @@ Routine Cpu6502::Impl::Instr_LDY()
 Routine Cpu6502::Impl::Instr_LSR()
 {
     WaitRoutine( ReadAddress() );
-    WaitRoutine( ReadData() );
 
-    WaitRoutine( PrepareWriteData() );
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 1
+        co_yield PrepareNextPage(); {}
+        WaitRoutine( ReadData() );
+    }
+    else
+    {
+        WaitRoutine( ReadData() );
+        WaitRoutine( PrepareWriteData() );
+    }
 
     registers.SetCarry( Bitwise::Bit8(state.data, 0) );
 
@@ -1209,21 +1299,17 @@ Routine Cpu6502::Impl::Instr_PLA()
 {
     // Cycle 1
     co_yield DummyRead_PC();
-    {
-        registers.ApplyPool();
-    }
 
     // Cycle 2
-    {
-        registers.A = memory_->Read( registers.StackAddress() );
-    } co_yield WaitRead();
+    co_yield DummyRead(registers.StackAddress()); {}
 
     // Cycle 3
-    co_yield DummyRead_PC();
     {
+        registers.ApplyPool();
+        registers.A = memory_->Read( registers.StackAddress() );
         registers.SetZero( registers.A == 0 ? 1 : 0 );
         registers.SetNegative( Bitwise::Sign8(registers.A) );
-    }
+    } co_yield WaitRead();
 
     co_return;
 }
@@ -1232,20 +1318,19 @@ Routine Cpu6502::Impl::Instr_PLA()
 Routine Cpu6502::Impl::Instr_PLP()
 {
     // Cycle 1
-    co_yield DummyRead_PC();
-    {
-        registers.ApplyPool();
-    }
+    co_yield DummyRead_PC();{}
+
     // Cycle 2
-    {
-        registers.S = memory_->Read( registers.StackAddress() );
-    } co_yield WaitRead();
+    co_yield DummyRead(registers.StackAddress()); {}
 
     // Cycle 3
-    co_yield DummyRead_PC();
     {
+        registers.ApplyPool();
+        registers.S = memory_->Read( registers.StackAddress() );
         registers.SetUnusedFlag();
-    }
+        registers.SetBreak();
+    } co_yield WaitRead();
+
     co_return;
 }
 
@@ -1253,9 +1338,18 @@ Routine Cpu6502::Impl::Instr_PLP()
 Routine Cpu6502::Impl::Instr_ROL()
 {
     WaitRoutine( ReadAddress() );
-    WaitRoutine( ReadData() );
 
-    WaitRoutine( PrepareWriteData() );
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 1
+        co_yield PrepareNextPage(); {}
+        WaitRoutine( ReadData() );
+    }
+    else
+    {
+        WaitRoutine( ReadData() );
+        WaitRoutine( PrepareWriteData() );
+    }
 
     state.helper8 = registers.Carry();
     registers.SetCarry( Bitwise::Bit8(state.data, 7) );
@@ -1275,9 +1369,18 @@ Routine Cpu6502::Impl::Instr_ROL()
 Routine Cpu6502::Impl::Instr_ROR()
 {
     WaitRoutine( ReadAddress() );
-    WaitRoutine( ReadData() );
 
-    WaitRoutine( PrepareWriteData() );
+    if (state.pageCrossedAddr.value_or(state.address) != state.address)
+    {
+        // Cycle 1
+        co_yield PrepareNextPage(); {}
+        WaitRoutine( ReadData() );
+    }
+    else
+    {
+        WaitRoutine( ReadData() );
+        WaitRoutine( PrepareWriteData() );
+    }
 
     state.helper8 = registers.Carry();
     registers.SetCarry( Bitwise::Bit8(state.data, 0) );
@@ -1298,11 +1401,14 @@ Routine Cpu6502::Impl::Instr_RTI()
 {
     // Cycle 1
     co_yield DummyRead_PC();
+
+    // Cycle 2
+    co_yield DummyRead(registers.StackAddress()); {}
     {
         registers.ApplyPool();
     }
 
-    // Cycle 2
+    // Cycle 3
     {
         state.helper8 = memory_->Read( registers.StackAddress() );
         registers.S = state.helper8;
@@ -1310,22 +1416,19 @@ Routine Cpu6502::Impl::Instr_RTI()
         registers.SetBreak();
     } co_yield WaitRead();
 
-    // Cycle 3
+    // Cycle 4
     {
         registers.ApplyPool();
         state.helper8 = memory_->Read(registers.StackAddress());
         Bitwise::SetLoByte16(registers.PC, state.helper8);
     } co_yield WaitRead();
 
-    // Cycle 4
+    // Cycle 5
     {
         registers.ApplyPool();
         state.helper8 = memory_->Read(registers.StackAddress());
         Bitwise::SetHiByte16(registers.PC, state.helper8);
     } co_yield WaitRead();
-
-    // Cycle 5
-    co_yield DummyRead_PC(); {}
 
     co_return;
 }
@@ -1335,17 +1438,9 @@ Routine Cpu6502::Impl::Instr_RTS()
 {
     // Cycle 1
     co_yield DummyRead_PC();
-    {
-        registers.ApplyPool();
-    }
 
     // Cycle 2
-    {
-        state.helper8 = memory_->Read( registers.StackAddress() );
-        registers.S = state.helper8;
-        registers.SetUnusedFlag();
-        registers.SetBreak();
-    } co_yield WaitRead();
+    co_yield DummyRead(registers.StackAddress()); {}
 
     // Cycle 3
     {
@@ -1359,11 +1454,13 @@ Routine Cpu6502::Impl::Instr_RTS()
         registers.ApplyPool();
         state.helper8 = memory_->Read(registers.StackAddress());
         Bitwise::SetHiByte16(registers.PC, state.helper8);
-        registers.PC++;
     } co_yield WaitRead();
 
     // Cycle 5
-    co_yield DummyRead_PC(); // TODO: Not sure
+    co_yield DummyRead_PC();
+    {
+        registers.PC++;
+    }
 
     co_return;
 }
@@ -1442,12 +1539,22 @@ Routine Cpu6502::Impl::Instr_SEI()
 Routine Cpu6502::Impl::Instr_STA()
 {
     WaitRoutine( ReadAddress() );
-    if ( state.addressMode == Meta::MemAcc_Indexed_Y )
+
+    if ( state.addressMode == Meta::MemAcc_Indexed_Y ||
+         state.addressMode == Meta::MemAcc_Absolute_X ||
+         state.addressMode == Meta::MemAcc_Absolute_Y)
     {
-        // Cycle 1
-        // TODO: Verify it!
-        co_yield DummyRead_PC(); {}
+        if (state.pageCrossedAddr.value_or(state.address) != state.address)
+        {
+            // Cycle 1
+            co_yield PrepareNextPage(); {}
+        }
+        else
+        {
+            co_yield DummyRead(state.address); {}
+        }
     }
+
     state.data = registers.A;
     WaitRoutine( WriteData() );
 

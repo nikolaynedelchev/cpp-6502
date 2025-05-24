@@ -73,6 +73,13 @@ Byte Ram::Read(Address address)
     return memory_[address - start_];
 }
 
+Byte Ram::ReadFromLastAddress()
+{
+    Error("Ram::ReadFromLastAddress", "Not Implamented")
+        .Throw();
+    return 0;
+}
+
 void Ram::Write(Address address, Byte data)
 {
     if (address < start_ || address > end_)
@@ -86,6 +93,30 @@ void Ram::Write(Address address, Byte data)
             .Throw();
     }
     memory_[address - start_] = data;
+}
+
+void Ram::WriteLastData(Address)
+{
+    Error("Ram::WriteLastData", "Not Implamented")
+        .Throw();
+}
+
+void Ram::WriteToLastAddress(Byte)
+{
+    Error("Ram::WriteToLastAddress", "Not Implamented")
+        .Throw();
+}
+
+void Ram::WriteToLastAddressLastData()
+{
+    Error("Ram::WriteToLastAddressLastData", "Not Implamented")
+        .Throw();
+}
+
+void Ram::RepeatLastOperation()
+{
+    Error("Ram::RepeatLastOperation", "Not Implamented")
+        .Throw();
 }
 
 std::string Ram::ToString() const

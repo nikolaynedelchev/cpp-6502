@@ -14,23 +14,30 @@ void Membus::Clock()
 
 Byte Membus::Read(Address address)
 {
+    lastValildAddress_ = address;
+    return ReadFromLastAddress();
+}
+
+Byte Membus::ReadFromLastAddress()
+{
     if (!isReady_)
     {
         Error("Membus")
             .Msg("Memory not ready for read")
-            .Msg("Address: {}", address)
+            .Msg("Address: {}", lastValildAddress_)
             .Throw();
     }
     isReady_ = false;
-    Byte data = Unsafe_Read(address);
+    isLastRead_ = true;
+    lastValildData_ = Unsafe_Read(lastValildAddress_);
     if (testSequence_.size())
     {
-        if (testSequence_[sequenceIdx_].address != address ||
-            testSequence_[sequenceIdx_].data != data ||
+        if (testSequence_[sequenceIdx_].address != lastValildAddress_ ||
+            testSequence_[sequenceIdx_].data != lastValildData_ ||
             testSequence_[sequenceIdx_].isRead == false)
         {
             isSequenceOk = false;
-            fmt::println("[actual] Cmd: R, Address: x{:04X}/{}, data: x{:02X}/{}", address, address, data, data);
+            fmt::println("[actual] Cmd: R, Address: x{:04X}/{}, data: x{:02X}/{}", lastValildAddress_, lastValildAddress_, lastValildData_, lastValildData_);
             fmt::println("[expect] Cmd: {}, Address: x{:04X}/{}, data: x{:02X}/{}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
                          testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].address,
                          testSequence_[sequenceIdx_].data, testSequence_[sequenceIdx_].data);
@@ -45,26 +52,46 @@ Byte Membus::Read(Address address)
             sequenceIdx_ = 0;
         }
     }
-    return data;
+    return lastValildData_;
 }
 
 void Membus::Write(Address address, Byte data)
+{
+    lastValildAddress_ = address;
+    lastValildData_ = data;
+    WriteToLastAddressLastData();
+}
+
+void Membus::WriteLastData(Address address)
+{
+    lastValildAddress_ = address;
+    WriteToLastAddressLastData();
+}
+
+void Membus::WriteToLastAddress(Byte data)
+{
+    lastValildData_ = data;
+    WriteToLastAddressLastData();
+}
+
+void Membus::WriteToLastAddressLastData()
 {
     if (!isReady_)
     {
         Error("Membus")
             .Msg("Memory not ready for write")
-            .Msg("Address: {}", address)
+            .Msg("Address: {}", lastValildAddress_)
             .Throw();
     }
     if (testSequence_.size())
     {
-        if (testSequence_[sequenceIdx_].address != address ||
-            testSequence_[sequenceIdx_].data != data ||
+        if (testSequence_[sequenceIdx_].address != lastValildAddress_ ||
+            testSequence_[sequenceIdx_].data != lastValildData_ ||
             testSequence_[sequenceIdx_].isRead == true)
         {
             isSequenceOk = false;
-            fmt::println("[actual] Cmd: W, Address: x{:04X}/{}, data: x{:02X}/{} ", address, address, data, data);
+            fmt::println("[actual] Cmd: W, Address: x{:04X}/{}, data: x{:02X}/{} ",
+                         lastValildAddress_, lastValildAddress_, lastValildData_, lastValildData_);
             fmt::println("[expect] Cmd: {}, Address: x{:04X}/{}, data: x{:02X}/{}", (testSequence_[sequenceIdx_].isRead)?"R":"W",
                          testSequence_[sequenceIdx_].address, testSequence_[sequenceIdx_].address,
                          testSequence_[sequenceIdx_].data, testSequence_[sequenceIdx_].data);
@@ -79,7 +106,21 @@ void Membus::Write(Address address, Byte data)
             sequenceIdx_ = 0;
         }
     }
-    Unsafe_Write(address, data);
+    isReady_ = false;
+    isLastRead_ = false;
+    Unsafe_Write(lastValildAddress_, lastValildData_);
+}
+
+void Membus::RepeatLastOperation()
+{
+    if (isLastRead_)
+    {
+        ReadFromLastAddress();
+    }
+    else
+    {
+        WriteToLastAddressLastData();
+    }
 }
 
 std::string Membus::ToString() const
@@ -101,8 +142,7 @@ Byte Membus::Unsafe_Read(Address address)
     {
         if (slot.start <= address && slot.end >= address)
         {
-            lastValildData_ = slot.memory->Read(address);
-            return lastValildData_;
+            return slot.memory->Read(address);
         }
     }
 
@@ -112,9 +152,6 @@ Byte Membus::Unsafe_Read(Address address)
 
 void Membus::Unsafe_Write(Address address, Byte data)
 {
-    isReady_ = false;
-    lastValildData_ = data;
-
     for(auto& slot : slots_)
     {
         if (slot.start <= address && slot.end >= address)
